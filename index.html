@@ -186,7 +186,7 @@
       <button class="fbsend" id="fbSend">שלח פידבק</button>
       <button class="fbcancel" id="fbCancel">ביטול</button>
     </div>
-    <p class="fbnote">השליחה פותחת GitHub Issue מוכן מראש, רק ללחוץ שם Submit. קלוד קורא את הפידבקים ומעדכן את הפרופיל והדירוג. לעריכה של פידבק קיים, פשוט ערוך את ה-Issue.</p>
+    <p class="fbnote">הפידבק נשלח ישירות מהדף. קלוד קורא אותו בשיחה הבאה, מעדכן את הפרופיל וציוני השחקנים, ומדרג את הכל מחדש. לעריכת פידבק שכבר נשלח, כפתור "ערוך דירוג" פותח אותו.</p>
   </div>
 </div>
 
@@ -432,17 +432,42 @@ async function openFeedback(title,tmdbId){
 
 document.getElementById('fbCancel').onclick=()=>document.getElementById('fbOverlay').classList.remove('open');
 document.getElementById('fbOverlay').addEventListener('click',e=>{if(e.target.id==='fbOverlay')document.getElementById('fbOverlay').classList.remove('open');});
-document.getElementById('fbSend').onclick=()=>{
+const WORKER_URL="https://kdrama-feedback.vaintrov.workers.dev";
+document.getElementById('fbSend').onclick=async ()=>{
   const rating=document.getElementById('fbRating').value;
   const liked=document.getElementById('fbLiked').value.trim();
   const disliked=document.getElementById('fbDisliked').value.trim();
   const actors=[...document.querySelectorAll('#fbActors select')].map(s=>s.value?`- ${s.dataset.actor}: ${s.value}`:null).filter(Boolean);
-  let body=`סדרה: ${fbShow}\nציון: ${rating}\n`;
-  if(liked) body+=`מה אהבתי: ${liked}\n`;
-  if(disliked) body+=`מה פחות עבד: ${disliked}\n`;
-  if(actors.length) body+=`שחקנים:\n${actors.join('\n')}\n`;
-  window.open(`https://github.com/${REPO}/issues/new?title=${encodeURIComponent('פידבק: '+fbShow)}&body=${encodeURIComponent(body)}`,'_blank');
-  document.getElementById('fbOverlay').classList.remove('open');
+  const btn=document.getElementById('fbSend');
+  btn.textContent='שולח...'; btn.disabled=true;
+  try{
+    const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({show:fbShow,rating,liked,disliked,actors})});
+    const d=await res.json();
+    if(!d.ok) throw new Error('worker failed');
+    FEEDBACK.set(fbShow.toLowerCase(),d.url);
+    btn.textContent='נשלח ✓';
+    setTimeout(()=>{
+      document.getElementById('fbOverlay').classList.remove('open');
+      btn.textContent='שלח פידבק'; btn.disabled=false;
+      // הסדרה עוברת מיידית ל"ראיתי" כממתינה לעיבוד
+      shows.forEach(s=>{
+        if(!s.moved&&s.t===fbShow){s.moved=true;
+          WATCHED.unshift({t:s.t,y:parseInt(s.y),rating:"פידבק נשלח",note:"ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד",pending:true,url:d.url,tmid:s.tmid,poster:s.poster});}
+      });
+      WATCHED.forEach(w=>{if(w.t===fbShow&&!w.pending){w.url=d.url;}});
+      renumber(); render(currentFilter); renderWatched();
+    },900);
+  }catch(e){
+    // נפילה חיננית: הדרך הישנה דרך גיטהאב
+    let body=`סדרה: ${fbShow}\nציון: ${rating}\n`;
+    if(liked) body+=`מה אהבתי: ${liked}\n`;
+    if(disliked) body+=`מה פחות עבד: ${disliked}\n`;
+    if(actors.length) body+=`שחקנים:\n${actors.join('\n')}\n`;
+    window.open(`https://github.com/${REPO}/issues/new?title=${encodeURIComponent('פידבק: '+fbShow)}&body=${encodeURIComponent(body)}`,'_blank');
+    document.getElementById('fbOverlay').classList.remove('open');
+    btn.textContent='שלח פידבק'; btn.disabled=false;
+  }
 };
 
 // ====== גילוי יומי: מועמדות חדשות בהתאמה גבוהה ======
