@@ -83,6 +83,30 @@
   .fbsend{background:var(--accent);color:#fff;border:0}
   .fbcancel{background:none;color:var(--muted);border:1px solid var(--border)}
   .fbnote{color:var(--muted);font-size:.82rem;margin-top:12px}
+  .layout{display:flex;gap:30px;align-items:flex-start}
+  #side{position:sticky;top:16px;min-width:172px;display:flex;flex-direction:column;gap:4px;padding-top:26px}
+  .side-btn{font-family:inherit;text-align:right;font-size:1rem;font-weight:500;color:var(--muted);background:none;border:0;border-right:2px solid transparent;padding:11px 14px;cursor:pointer;min-height:44px}
+  .side-btn[aria-current="true"]{color:var(--fg);border-right-color:var(--accent)}
+  .side-btn:hover{color:var(--fg)}
+  .side-btn .n{color:var(--muted);font-size:.85rem;font-weight:300}
+  main{flex:1;min-width:0}
+  .wgrid{display:flex;flex-direction:column;gap:12px;margin-top:24px}
+  .wcard{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px 16px}
+  .wcard .wp{width:52px;height:74px;border-radius:3px;background:#101218 center/cover no-repeat;flex-shrink:0}
+  .wcard .wi{flex:1;min-width:0}
+  .wcard .wn{direction:ltr;text-align:left;font-family:'Frank Ruhl Libre',serif;font-weight:600;font-size:1.05rem}
+  .wcard .wr{font-size:.9rem;margin-top:2px}
+  .wcard .wr b{color:var(--fg)}
+  .wcard .wnote{color:var(--muted);font-size:.85rem;margin-top:2px}
+  .wcard .wbtn{font-family:inherit;font-size:.88rem;font-weight:500;color:var(--fg);background:none;border:1px solid var(--border);border-radius:3px;padding:9px 16px;min-height:44px;cursor:pointer;flex-shrink:0}
+  .wcard .wbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .pending{color:var(--accent)}
+  @media(max-width:760px){
+    .layout{display:block}
+    #side{flex-direction:row;position:sticky;top:0;z-index:6;background:linear-gradient(var(--bg) 88%,transparent);padding:10px 0;min-width:0;overflow-x:auto}
+    .side-btn{border-right:0;border-bottom:2px solid transparent;white-space:nowrap}
+    .side-btn[aria-current="true"]{border-bottom-color:var(--accent)}
+  }
 </style>
 </head>
 <body>
@@ -93,20 +117,39 @@
     <p class="sub">כל ההמלצות עד היום, מדורגות לפי הפרופיל המלא של משה: צדק מנצח, תיק אחרי תיק, נבל מצמרר, מתח של טיוח, ומשחקי הישרדות עם כללים. הציונים, הפוסטרים, הזמינות והטריילרים נטענים חיים מ-TMDB.</p>
   </header>
 
-  <div class="filters" role="group" aria-label="סינון לפי פלטפורמה">
-    <button class="chip" aria-pressed="true" data-f="all">הכל</button>
-    <button class="chip" aria-pressed="false" data-f="netflix">Netflix</button>
-    <button class="chip" aria-pressed="false" data-f="disney">Disney+</button>
-    <button class="chip" aria-pressed="false" data-f="viki">Viki / Viu</button>
-    <button class="chip" aria-pressed="false" data-f="other">אחר</button>
-  </div>
-  <p class="count" id="count"></p>
-  <div class="grid" id="grid"></div>
+  <div class="layout">
+    <nav id="side" aria-label="ניווט">
+      <button class="side-btn" data-v="rank" aria-current="true">הדירוג <span class="n" id="nRank"></span></button>
+      <button class="side-btn" data-v="watched" aria-current="false">ראיתי <span class="n" id="nWatched"></span></button>
+      <button class="side-btn" data-v="disc" aria-current="false">חדש לבדיקה</button>
+    </nav>
+    <main>
+      <section id="view-rank">
+        <div class="filters" role="group" aria-label="סינון לפי פלטפורמה">
+          <button class="chip" aria-pressed="true" data-f="all">הכל</button>
+          <button class="chip" aria-pressed="false" data-f="netflix">Netflix</button>
+          <button class="chip" aria-pressed="false" data-f="disney">Disney+</button>
+          <button class="chip" aria-pressed="false" data-f="viki">Viki / Viu</button>
+          <button class="chip" aria-pressed="false" data-f="other">אחר</button>
+        </div>
+        <p class="count" id="count"></p>
+        <div class="grid" id="grid"></div>
+      </section>
 
-  <section id="discover" hidden>
-    <h2 class="disc-title">חדש שראוי לבדיקה <span class="disc-sub">נמצא אוטומטית לפי הפרופיל, מתעדכן בכל פתיחת דף</span></h2>
-    <div class="disc-grid" id="discGrid"></div>
-  </section>
+      <section id="view-watched" hidden>
+        <p class="count">הסדרות שכבר צפית, עם הציונים שנתת. סדרה שדירגת דרך הדף מופיעה כאן כ"ממתין לעיבוד" עד הסריקה הבאה של קלוד, שמכניסה אותה לפרופיל ומדרגת את הכל מחדש.</p>
+        <div class="wgrid" id="wgrid"></div>
+      </section>
+
+      <section id="view-disc" hidden>
+        <div id="discover" hidden>
+          <h2 class="disc-title">חדש שראוי לבדיקה <span class="disc-sub">נמצא אוטומטית לפי הפרופיל, מתעדכן בכל פתיחת דף</span></h2>
+          <div class="disc-grid" id="discGrid"></div>
+        </div>
+        <p class="count" id="discEmpty" hidden>אין כרגע סדרות חדשות שעוברות את הרף. הרשימה מתרעננת בכל פתיחת דף.</p>
+      </section>
+    </main>
+  </div>
 
   <footer>הדירוג משקלל התאמה לפרופיל + ציון MDL. עם מפתח TMDB, הפוסטרים והנתונים נטענים מ-This product uses the TMDB API but is not endorsed or certified by TMDB. ההיסטוריה המלאה שמורה בסקיל kdrama-recommender.</footer>
 </div>
@@ -172,7 +215,7 @@ const shows=[
  {t:"The Trunk",y:2024,tier:3,mdl:"7.9",plat:"Netflix",f:["netflix"],tint:"var(--tint-melo)",g:"מסתורין · מלודרמה",d:"נישואי חוזה ומזוודה שחושפת סודות.",like:["The Husband"],note:"מלודרמה איטית, נגד הפרופיל שלך",mdlU:"https://mydramalist.com/748589-trunk",imdbU:"https://www.imdb.com/title/tt26773401/"},
  {t:"Mercy for None",y:2025,tier:3,mdl:"8.3",plat:"Netflix",f:["netflix"],tint:"var(--tint-noir)",g:"אקשן · פשע · נואר",d:"גנגסטר בדימוס שנוקם את רצח אחיו. מצוין בז'אנר שלו, הכי רחוק מהליבה שלך.",like:["Teach You a Lesson"],mdlU:"https://mydramalist.com/748031-plaza-wars",imdbU:"https://www.imdb.com/title/tt29650530/"}
 ];
-shows.forEach((s,i)=>s.r=i+1);
+renumber();
 
 const tierName={1:"התאמה גבוהה",2:"התאמה טובה",3:"התאמה חלקית"};
 const grid=document.getElementById('grid');
@@ -181,8 +224,73 @@ const REPO="importifyteam-create/kdrama-ranking";
 const FEEDBACK=new Map(); // show title (lowercase) -> issue url
 let fbShow=null, fbId=null;
 
+// ====== הסדרות שכבר נצפו (מהפרופיל) ======
+const WATCHED=[
+ {t:"As You Stood By",y:2025,rating:"10",note:"סדרת העוגן: החברות, הטיוח, הרעה האמיתית, והצדק בסוף"},
+ {t:"Beyond the Bar",y:2025,rating:"8-9",note:"התיקים בבית המשפט, תיק לכל פרק, הטובים מנצחים"},
+ {t:"The Judge Returns",y:2026,rating:"8-9",note:"המושחתים נענשים תיק אחרי תיק. מינוס: פנטזיית הזמן"},
+ {t:"The Husband",y:2026,rating:"8-9",note:"החוטף המצמרר והמרדף הכפול. מינוס: נמרח בסוף"},
+ {t:"Alice in Borderland",y:2020,rating:"8-9",note:"פיצוח המשחקים, הדמויות האפורות, המסתורין"},
+ {t:"Squid Game",y:2021,rating:"עונה 1: 8-9",note:"עונות ההמשך: 6-7"},
+ {t:"Teach You a Lesson",y:2025,rating:"6-7",note:"הצדק המיידי. מינוס: אלימות מוגזמת ולא מקצועית"},
+ {t:"Agent Kim Reactivated",y:2026,rating:"ממתין לדירוג",note:"לחץ 'דרג' כדי לתת ציון ופידבק",needsRating:true}
+];
+
+function renumber(){let i=1;shows.forEach(s=>{if(!s.moved)s.r=i++;});}
+
+function renderWatched(){
+  const wg=document.getElementById('wgrid');
+  wg.innerHTML=WATCHED.map((w,i)=>`
+    <div class="wcard">
+      <div class="wp" id="wp${i}"></div>
+      <div class="wi">
+        <div class="wn"><bdi>${w.t}</bdi> <span style="color:var(--muted);font-weight:400;font-size:.9rem">${w.y}</span></div>
+        <div class="wr">ציון: <b class="${w.pending?'pending':''}">${w.rating}</b></div>
+        ${w.note?`<div class="wnote">${w.note}</div>`:''}
+      </div>
+      <button class="wbtn" data-wi="${i}">${w.url?'ערוך דירוג':(w.needsRating?'דרג':'עדכן דירוג')}</button>
+    </div>`).join('');
+  wg.querySelectorAll('.wbtn').forEach(b=>{
+    const w=WATCHED[+b.dataset.wi];
+    const ex=FEEDBACK.get(w.t.toLowerCase());
+    if(w.url||ex) b.onclick=()=>window.open(w.url||ex,'_blank');
+    else b.onclick=()=>openFeedback(w.t,w.tmid);
+  });
+  document.getElementById('nWatched').textContent=`(${WATCHED.length})`;
+  document.getElementById('nRank').textContent=`(${shows.filter(s=>!s.moved).length})`;
+}
+
+async function enrichWatched(){
+  if(!TMDB_KEY) return;
+  await Promise.all(WATCHED.map(async (w,i)=>{
+    try{
+      const sr=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(w.t)}&first_air_date_year=${w.y}`).then(r=>r.json());
+      let hit=(sr.results||[])[0];
+      if(!hit){
+        const sr2=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(w.t)}`).then(r=>r.json());
+        hit=(sr2.results||[])[0];
+      }
+      if(hit){w.tmid=hit.id;const el=document.getElementById('wp'+i);if(el&&hit.poster_path)el.style.backgroundImage=`url('https://image.tmdb.org/t/p/w185${hit.poster_path}')`;}
+    }catch(e){}
+  }));
+  renderWatched();
+}
+
+// ====== ניווט בין אזורים ======
+document.querySelectorAll('.side-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.side-btn').forEach(b=>b.setAttribute('aria-current','false'));
+    btn.setAttribute('aria-current','true');
+    const v=btn.dataset.v;
+    document.getElementById('view-rank').hidden=v!=='rank';
+    document.getElementById('view-watched').hidden=v!=='watched';
+    document.getElementById('view-disc').hidden=v!=='disc';
+  });
+});
+
 function render(filter){
-  const list=shows.filter(s=>filter==='all'||s.f.includes(filter));
+  const list=shows.filter(s=>!s.moved&&(filter==='all'||s.f.includes(filter)));
+  const total=shows.filter(s=>!s.moved).length;
   grid.innerHTML=list.map(s=>`
     <article class="card${s.r===1?' top':''}">
       <div class="poster" style="background:${s.poster?`linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${s.poster}') center 20%/cover no-repeat`:`linear-gradient(160deg,${s.tint},#101218 85%)`}">
@@ -209,7 +317,7 @@ function render(filter){
         </div>
       </div>
     </article>`).join('');
-  count.textContent=list.length===shows.length?`מציג את כל ${shows.length} הסדרות`:`${list.length} סדרות בסינון הנוכחי`;
+  count.textContent=list.length===total?`מציג את כל ${total} הסדרות`:`${list.length} סדרות בסינון הנוכחי`;
   grid.querySelectorAll('.seenbtn').forEach(b=>{
     const s=shows[+b.dataset.si];
     if(FEEDBACK.has(s.t.toLowerCase())){b.textContent='ערוך דירוג';b.classList.add('done');b.onclick=()=>window.open(FEEDBACK.get(s.t.toLowerCase()),'_blank');}
@@ -272,9 +380,20 @@ async function loadFeedback(){
       const m=/^פידבק: (.+)$/.exec(i.title||"");
       if(m&&!FEEDBACK.has(m[1].toLowerCase())) FEEDBACK.set(m[1].toLowerCase(),i.html_url);
     });
+    // סדרה מהדירוג שקיבלה פידבק עוברת ל"ראיתי" עד הסריקה הבאה של קלוד
+    shows.forEach(s=>{
+      if(!s.moved&&FEEDBACK.has(s.t.toLowerCase())){
+        s.moved=true;
+        WATCHED.unshift({t:s.t,y:parseInt(s.y),rating:"פידבק נשלח",note:"ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד",pending:true,url:FEEDBACK.get(s.t.toLowerCase()),tmid:s.tmid});
+      }
+    });
+    renumber();
   }catch(e){}
   render(currentFilter);
+  renderWatched();
 }
+renderWatched();
+enrichWatched();
 
 async function openFeedback(title,tmdbId){
   fbShow=title; fbId=tmdbId;
@@ -335,7 +454,7 @@ async function discover(){
       .filter(x=>x.poster_path&&!KNOWN.has((x.name||"").toLowerCase()))
       .sort((a,b)=>b.vote_average-a.vote_average)
       .slice(0,8);
-    if(!found.length) return;
+    if(!found.length){document.getElementById('discEmpty').hidden=false;return;}
     document.getElementById('discGrid').innerHTML=found.map(x=>`
       <div class="disc-card">
         <a href="https://www.themoviedb.org/tv/${x.id}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
