@@ -373,6 +373,17 @@ render('all');
 enrichAll();
 
 // ====== מעגל פידבק דרך GitHub Issues ======
+// פידבק בסיס מהראיונות בצ'אט (31.08.26): משמש למילוי מראש של הטופס.
+// פידבק חדש שנשלח מהדף (Issue) תמיד גובר על הבסיס הזה.
+const BASE_FB={
+ "as you stood by":{rating:"10 - מושלמת",liked:"החברות בין און-סו להי-סו וההקרבה, המתח של הטיוח והקיר שנסגר, השוטרת ג'ין-יונג בתור הרעה האמיתית, וההסגרה מרצון עם הצדק בבית המשפט",disliked:""},
+ "beyond the bar":{rating:"8-9 - מצוינת",liked:"התיקים והטקטיקות באולם בית המשפט, תיק לכל פרק, מרגש ומלמד, והטובים מנצחים בסוף",disliked:""},
+ "the judge returns":{rating:"8-9 - מצוינת",liked:"המושחתים מקבלים עונש תיק אחרי תיק, והעימות מול השופט הראשי קאנג שין-ג'ין וממשלת הצללים",disliked:"אלמנט הפנטזיה של החזרה בזמן"},
+ "the husband":{rating:"8-9 - מצוינת",liked:"החוטף נו מאן-הי המצמרר, הרקע של מות הבת והאשמה, והמרדף הכפול",disliked:"בסוף זה קצת נמרח"},
+ "alice in borderland":{rating:"8-9 - מצוינת",liked:"פיצוח המשחקים עם אריסו, הקשר עם אוסאגי, הדמויות האפורות כמו צ'ישיה והחוף, והמסתורין הגדול",disliked:""},
+ "squid game":{rating:"8-9 - מצוינת",liked:"המשחקים והכללים, הדמויות והבריתות, הבגידות כשהכסף על השולחן, והביקורת החברתית. עונה 1: 8-9",disliked:"העונות 2 ו-3 פחות טובות, 6-7"},
+ "teach you a lesson":{rating:"6-7 - טובה",liked:"הצדק המיידי מקרה אחרי מקרה, והביקורת על מערכת החינוך",disliked:"אלימות מוגזמת שנראית לא מקצועית ומורידה את איכות הסדרה"}
+};
 
 async function loadFeedback(){
   try{
@@ -405,7 +416,8 @@ function parseFb(body){
 
 async function openFeedback(title,tmdbId){
   fbShow=title; fbId=tmdbId;
-  const prev=FEEDBACK.has(title.toLowerCase())?parseFb(FEEDBACK.get(title.toLowerCase()).body):null;
+  const key=title.toLowerCase();
+  const prev=FEEDBACK.has(key)?parseFb(FEEDBACK.get(key).body):(BASE_FB[key]||null);
   document.getElementById('fbTitle').textContent=title;
   document.getElementById('fbLiked').value=prev?prev.liked:'';
   document.getElementById('fbDisliked').value=prev?prev.disliked:'';
