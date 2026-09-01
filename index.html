@@ -177,6 +177,9 @@ shows.forEach((s,i)=>s.r=i+1);
 const tierName={1:"התאמה גבוהה",2:"התאמה טובה",3:"התאמה חלקית"};
 const grid=document.getElementById('grid');
 const count=document.getElementById('count');
+const REPO="importifyteam-create/kdrama-ranking";
+const FEEDBACK=new Map(); // show title (lowercase) -> issue url
+let fbShow=null, fbId=null;
 
 function render(filter){
   const list=shows.filter(s=>filter==='all'||s.f.includes(filter));
@@ -261,9 +264,6 @@ render('all');
 enrichAll();
 
 // ====== מעגל פידבק דרך GitHub Issues ======
-const REPO="importifyteam-create/kdrama-ranking";
-const FEEDBACK=new Map(); // show title (lowercase) -> issue url
-let fbShow=null, fbId=null;
 
 async function loadFeedback(){
   try{
