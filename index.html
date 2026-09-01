@@ -443,8 +443,9 @@ document.getElementById('fbSend').onclick=async ()=>{
   try{
     const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({show:fbShow,rating,liked,disliked,actors})});
-    const d=await res.json();
-    if(!d.ok) throw new Error('worker failed');
+    const txt=await res.text();
+    let d={}; try{d=JSON.parse(txt);}catch(_){}
+    if(!d.ok) throw new Error(`Worker ${res.status}: ${txt.slice(0,120)}`);
     FEEDBACK.set(fbShow.toLowerCase(),d.url);
     btn.textContent='נשלח ✓';
     setTimeout(()=>{
@@ -459,6 +460,7 @@ document.getElementById('fbSend').onclick=async ()=>{
       renumber(); render(currentFilter); renderWatched();
     },900);
   }catch(e){
+    alert('השליחה הישירה נכשלה, עוברים לגיטהאב.\nסיבה טכנית (שלח לקלוד): '+(e&&e.message?e.message:e));
     // נפילה חיננית: הדרך הישנה דרך גיטהאב
     let body=`סדרה: ${fbShow}\nציון: ${rating}\n`;
     if(liked) body+=`מה אהבתי: ${liked}\n`;
