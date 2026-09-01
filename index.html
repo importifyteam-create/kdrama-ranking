@@ -26,6 +26,10 @@
   .chip{font-family:inherit;font-size:.92rem;font-weight:500;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:9px 18px;cursor:pointer;min-height:44px}
   .chip[aria-pressed="true"]{color:var(--fg);border-color:var(--fg)}
   .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .fsel{font-family:inherit;font-size:.92rem;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:9px 16px;min-height:44px}
+  .fsel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  input.fsel{width:150px}
+  input.fsel::placeholder{color:var(--muted)}
   .count{color:var(--muted);font-size:.9rem;padding:12px 2px 0}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:18px;margin-top:22px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;display:flex;flex-direction:column}
@@ -134,6 +138,20 @@
           <button class="chip" aria-pressed="false" data-f="disney">Disney+</button>
           <button class="chip" aria-pressed="false" data-f="viki">Viki / Viu</button>
           <button class="chip" aria-pressed="false" data-f="other">אחר</button>
+          <select class="fsel" id="fScore" aria-label="סינון לפי ציון">
+            <option value="0">כל ציון</option>
+            <option value="8.5">8.5 ומעלה</option>
+            <option value="8">8 ומעלה</option>
+            <option value="7.5">7.5 ומעלה</option>
+          </select>
+          <select class="fsel" id="fYear" aria-label="סינון לפי שנה">
+            <option value="all">כל שנה</option>
+            <option value="new">2025-2026</option>
+            <option value="mid">2023-2024</option>
+            <option value="old">עד 2022</option>
+          </select>
+          <input class="fsel" id="fActor" list="actorList" placeholder="חפש שחקן..." dir="ltr" aria-label="סינון לפי שחקן">
+          <datalist id="actorList"></datalist>
         </div>
         <p class="count" id="count"></p>
         <div class="grid" id="grid"></div>
@@ -288,8 +306,18 @@ document.querySelectorAll('.side-btn').forEach(btn=>{
   });
 });
 
+function passes(s){
+  if(F.plat!=='all'&&!s.f.includes(F.plat)) return false;
+  if(F.score){const sc=parseFloat(s.mdl)||parseFloat(s.tm)||0;if(sc<F.score)return false;}
+  const yr=parseInt(s.y);
+  if(F.year==='new'&&yr<2025) return false;
+  if(F.year==='mid'&&(yr<2023||yr>2024)) return false;
+  if(F.year==='old'&&yr>2022) return false;
+  if(F.actor){if(!s.cast||!s.cast.some(n=>n.toLowerCase().includes(F.actor.toLowerCase())))return false;}
+  return true;
+}
 function render(filter){
-  const list=shows.filter(s=>!s.moved&&(filter==='all'||s.f.includes(filter)));
+  const list=shows.filter(s=>!s.moved&&passes(s));
   const total=shows.filter(s=>!s.moved).length;
   grid.innerHTML=list.map(s=>`
     <article class="card${s.r===1?' top':''}">
@@ -328,6 +356,7 @@ function render(filter){
 // ====== העשרה חיה מ-TMDB ======
 const TMDB_KEY="fd37a1230832a8c38f699f082fa16110";
 let currentFilter='all';
+const F={plat:'all',score:0,year:'all',actor:''};
 
 async function enrich(s){
   try{
@@ -342,7 +371,7 @@ async function enrich(s){
     s.tmid=hit.id;
     s.poster=hit.poster_path?`https://image.tmdb.org/t/p/w500${hit.poster_path}`:null;
     s.tm=hit.vote_average?hit.vote_average.toFixed(1):null;
-    const d=await fetch(`https://api.themoviedb.org/3/tv/${hit.id}?api_key=${TMDB_KEY}&append_to_response=videos,watch%2Fproviders,external_ids`).then(r=>r.json());
+    const d=await fetch(`https://api.themoviedb.org/3/tv/${hit.id}?api_key=${TMDB_KEY}&append_to_response=videos,watch%2Fproviders,external_ids,aggregate_credits`).then(r=>r.json());
     const stMap={"Ended":"הסתיימה","Returning Series":"עדיין משודרת","Canceled":"בוטלה","In Production":"בהפקה"};
     s.st=`${stMap[d.status]||d.status||""}${d.number_of_seasons>1?` · ${d.number_of_seasons} עונות`:""} · ${d.number_of_episodes} פרקים`;
     const th=d["watch/providers"]&&d["watch/providers"].results&&d["watch/providers"].results.TH;
@@ -351,12 +380,15 @@ async function enrich(s){
     const v=vids.find(x=>x.site==="YouTube"&&x.type==="Trailer")||vids.find(x=>x.site==="YouTube");
     s.yt=v?`https://www.youtube.com/watch?v=${v.key}`:null;
     if(d.external_ids&&d.external_ids.imdb_id) s.imdbU=`https://www.imdb.com/title/${d.external_ids.imdb_id}/`;
+    s.cast=((d.aggregate_credits&&d.aggregate_credits.cast)||[]).slice(0,8).map(a=>a.name);
   }catch(e){/* בלי רשת: הדף עובד עם הנתונים הקבועים */}
 }
 
 async function enrichAll(){
   if(!TMDB_KEY) return;
   await Promise.all(shows.map(enrich));
+  const names=[...new Set(shows.flatMap(s=>s.cast||[]))].sort();
+  document.getElementById('actorList').innerHTML=names.map(n=>`<option value="${n.replace(/"/g,'')}">`).join('');
   render(currentFilter);
 }
 
@@ -365,9 +397,13 @@ document.querySelectorAll('.chip').forEach(btn=>{
     document.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed','false'));
     btn.setAttribute('aria-pressed','true');
     currentFilter=btn.dataset.f;
+    F.plat=btn.dataset.f;
     render(currentFilter);
   });
 });
+document.getElementById('fScore').addEventListener('change',e=>{F.score=parseFloat(e.target.value)||0;render(currentFilter);});
+document.getElementById('fYear').addEventListener('change',e=>{F.year=e.target.value;render(currentFilter);});
+document.getElementById('fActor').addEventListener('input',e=>{F.actor=e.target.value.trim();render(currentFilter);});
 render('all');
 enrichAll();
 
