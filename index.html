@@ -243,16 +243,20 @@ function renumber(){let i=1;shows.forEach(s=>{if(!s.moved)s.r=i++;});}
 
 function renderWatched(){
   const wg=document.getElementById('wgrid');
-  wg.innerHTML=WATCHED.map((w,i)=>`
+  wg.innerHTML=WATCHED.map((w,i)=>{
+    const fb=FEEDBACK.get(w.t.toLowerCase());
+    const eff=fb?(parseFb(fb.body).rating||w.rating):w.rating;
+    const changed=fb&&eff!==w.rating&&!w.pending;
+    return `
     <div class="wcard">
       <div class="wp" style="${w.poster?`background-image:url('${w.poster}')`:''}"></div>
       <div class="wi">
         <div class="wn"><bdi>${w.t}</bdi> <span style="color:var(--muted);font-weight:400;font-size:.9rem">${w.y}</span></div>
-        <div class="wr">ציון: <b class="${w.pending?'pending':''}">${w.rating}</b></div>
+        <div class="wr">ציון: <b class="${(w.pending||changed)?'pending':''}">${eff}</b>${changed?' <span class="wnote pending">עודכן דרך הדף, ממתין לעיבוד</span>':''}</div>
         ${w.note?`<div class="wnote">${w.note}</div>`:''}
       </div>
       <button class="wbtn" data-wi="${i}">${FEEDBACK.has(w.t.toLowerCase())?'ערוך דירוג':(w.needsRating?'דרג':'עדכן דירוג')}</button>
-    </div>`).join('');
+    </div>`;}).join('');
   wg.querySelectorAll('.wbtn').forEach(b=>{
     const w=WATCHED[+b.dataset.wi];
     b.onclick=()=>openFeedback(w.t,w.tmid);
