@@ -75,9 +75,12 @@
   #fbModal label{display:block;color:var(--muted);font-size:.88rem;margin-bottom:6px}
   #fbModal select,#fbModal textarea{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:3px;padding:9px;font-family:inherit;font-size:.92rem}
   #fbModal textarea{min-height:64px;resize:vertical}
-  .actorrow{display:flex;align-items:center;gap:10px;margin-top:8px}
-  .actorrow .an{flex:1;direction:ltr;text-align:left;font-size:.9rem}
-  .actorrow select{width:150px}
+  .actorrow{display:flex;align-items:center;gap:12px;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 10px}
+  .actorrow .ap{width:44px;height:58px;border-radius:3px;background:#22262e center top/cover no-repeat;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:1.1rem}
+  .actorrow .ainfo{flex:1;min-width:0}
+  .actorrow .an{direction:ltr;text-align:left;font-size:.92rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .actorrow .ac{direction:ltr;text-align:left;font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .actorrow select{width:132px;flex-shrink:0}
   .fbactions{display:flex;gap:10px;margin-top:20px}
   .fbactions button{flex:1;font-family:inherit;font-size:.95rem;font-weight:500;border-radius:3px;padding:12px 0;cursor:pointer}
   .fbsend{background:var(--accent);color:#fff;border:0}
@@ -408,15 +411,23 @@ async function openFeedback(title,tmdbId){
       cast=(c.cast||[]).slice(0,5);
     }catch(e){}
   }
-  box.innerHTML=cast.length?cast.map(a=>`
-    <div class="actorrow"><span class="an"><bdi>${a.name}</bdi></span>
+  box.innerHTML=cast.length?cast.map(a=>{
+    const role=(a.roles&&a.roles[0]&&a.roles[0].character)||'';
+    const photo=a.profile_path?`style="background-image:url('https://image.tmdb.org/t/p/w185${a.profile_path}')"`:'';
+    return `
+    <div class="actorrow">
+      <div class="ap" ${photo}>${a.profile_path?'':'?'}</div>
+      <div class="ainfo">
+        <div class="an"><bdi>${a.name}</bdi></div>
+        ${role?`<div class="ac"><bdi>${role}</bdi></div>`:''}
+      </div>
       <select data-actor="${a.name.replace(/"/g,'')}">
         <option value="">לא דירגתי</option>
         <option value="אהבתי מאוד">אהבתי מאוד</option>
         <option value="בסדר">בסדר</option>
         <option value="לא אהבתי">לא אהבתי</option>
       </select>
-    </div>`).join(''):'<span class="fbnote">לא נמצאו שחקנים, אפשר לכתוב בטקסט למעלה</span>';
+    </div>`;}).join(''):'<span class="fbnote">לא נמצאו שחקנים, אפשר לכתוב בטקסט למעלה</span>';
 }
 
 document.getElementById('fbCancel').onclick=()=>document.getElementById('fbOverlay').classList.remove('open');
