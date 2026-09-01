@@ -62,6 +62,27 @@
   .disc-card .db{padding:10px 12px;font-size:.85rem}
   .disc-card .dn{direction:ltr;text-align:left;font-weight:500;line-height:1.3}
   .disc-card .dm{color:var(--muted);margin-top:4px}
+  .seenbtn{font-family:inherit;font-size:.9rem;font-weight:500;color:var(--fg);background:none;border:1px solid var(--border);border-radius:3px;padding:10px 0;min-height:44px;flex:1;cursor:pointer}
+  .seenbtn:hover{border-color:var(--accent);color:var(--accent)}
+  .seenbtn.done{border-color:var(--border);color:var(--muted)}
+  .dseen{display:block;width:100%;font-family:inherit;font-size:.85rem;color:var(--fg);background:none;border:0;border-top:1px solid var(--border);padding:10px 0;cursor:pointer}
+  .dseen:hover{color:var(--accent)}
+  #fbOverlay{position:fixed;inset:0;background:rgba(10,11,15,.8);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  #fbOverlay.open{display:flex}
+  #fbModal{background:var(--surface);border:1px solid var(--border);border-radius:6px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:24px}
+  #fbModal h3{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;direction:ltr;text-align:left}
+  #fbModal .sec{margin-top:16px;font-size:.95rem}
+  #fbModal label{display:block;color:var(--muted);font-size:.88rem;margin-bottom:6px}
+  #fbModal select,#fbModal textarea{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:3px;padding:9px;font-family:inherit;font-size:.92rem}
+  #fbModal textarea{min-height:64px;resize:vertical}
+  .actorrow{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .actorrow .an{flex:1;direction:ltr;text-align:left;font-size:.9rem}
+  .actorrow select{width:150px}
+  .fbactions{display:flex;gap:10px;margin-top:20px}
+  .fbactions button{flex:1;font-family:inherit;font-size:.95rem;font-weight:500;border-radius:3px;padding:12px 0;cursor:pointer}
+  .fbsend{background:var(--accent);color:#fff;border:0}
+  .fbcancel{background:none;color:var(--muted);border:1px solid var(--border)}
+  .fbnote{color:var(--muted);font-size:.82rem;margin-top:12px}
 </style>
 </head>
 <body>
@@ -88,6 +109,39 @@
   </section>
 
   <footer>הדירוג משקלל התאמה לפרופיל + ציון MDL. עם מפתח TMDB, הפוסטרים והנתונים נטענים מ-This product uses the TMDB API but is not endorsed or certified by TMDB. ההיסטוריה המלאה שמורה בסקיל kdrama-recommender.</footer>
+</div>
+
+<div id="fbOverlay">
+  <div id="fbModal" role="dialog" aria-modal="true">
+    <h3 id="fbTitle"></h3>
+    <div class="sec">
+      <label>כמה אהבת?</label>
+      <select id="fbRating">
+        <option>10 - מושלמת</option>
+        <option selected>8-9 - מצוינת</option>
+        <option>6-7 - טובה</option>
+        <option>פחות מ-6</option>
+        <option>נטשתי באמצע</option>
+      </select>
+    </div>
+    <div class="sec">
+      <label>מה אהבת הכי הרבה?</label>
+      <textarea id="fbLiked" placeholder="הנבל, המשחקים, הסוף..."></textarea>
+    </div>
+    <div class="sec">
+      <label>מה פחות עבד?</label>
+      <textarea id="fbDisliked" placeholder="אפשר להשאיר ריק"></textarea>
+    </div>
+    <div class="sec">
+      <label>שחקנים ראשיים (דרג רק את מי שבלט לך)</label>
+      <div id="fbActors"></div>
+    </div>
+    <div class="fbactions">
+      <button class="fbsend" id="fbSend">שלח פידבק</button>
+      <button class="fbcancel" id="fbCancel">ביטול</button>
+    </div>
+    <p class="fbnote">השליחה פותחת GitHub Issue מוכן מראש, רק ללחוץ שם Submit. קלוד קורא את הפידבקים ומעדכן את הפרופיל והדירוג. לעריכה של פידבק קיים, פשוט ערוך את ה-Issue.</p>
+  </div>
 </div>
 
 <script>
@@ -148,10 +202,16 @@ function render(filter){
           <a href="${s.mdlU}" target="_blank" rel="noopener">MyDramaList</a>
           <a href="${s.imdbU}" target="_blank" rel="noopener">IMDb</a>
           <a href="${s.yt||`https://www.youtube.com/results?search_query=${encodeURIComponent(s.t+' kdrama official trailer')}`}" target="_blank" rel="noopener">טריילר</a>
+          <button class="seenbtn" data-si="${shows.indexOf(s)}">ראיתי</button>
         </div>
       </div>
     </article>`).join('');
   count.textContent=list.length===shows.length?`מציג את כל ${shows.length} הסדרות`:`${list.length} סדרות בסינון הנוכחי`;
+  grid.querySelectorAll('.seenbtn').forEach(b=>{
+    const s=shows[+b.dataset.si];
+    if(FEEDBACK.has(s.t.toLowerCase())){b.textContent='ערוך דירוג';b.classList.add('done');b.onclick=()=>window.open(FEEDBACK.get(s.t.toLowerCase()),'_blank');}
+    else b.onclick=()=>openFeedback(s.t,s.tmid);
+  });
 }
 
 // ====== העשרה חיה מ-TMDB ======
@@ -168,6 +228,7 @@ async function enrich(s){
       hit=(sr2.results||[]).find(r=>(r.origin_country||[]).includes('KR')&&(r.first_air_date||"").startsWith(String(yr)))||(sr2.results||[]).find(r=>(r.origin_country||[]).includes('KR'));
     }
     if(!hit) return;
+    s.tmid=hit.id;
     s.poster=hit.poster_path?`https://image.tmdb.org/t/p/w500${hit.poster_path}`:null;
     s.tm=hit.vote_average?hit.vote_average.toFixed(1):null;
     const d=await fetch(`https://api.themoviedb.org/3/tv/${hit.id}?api_key=${TMDB_KEY}&append_to_response=videos,watch%2Fproviders,external_ids`).then(r=>r.json());
@@ -199,12 +260,67 @@ document.querySelectorAll('.chip').forEach(btn=>{
 render('all');
 enrichAll();
 
+// ====== מעגל פידבק דרך GitHub Issues ======
+const REPO="importifyteam-create/kdrama-ranking";
+const FEEDBACK=new Map(); // show title (lowercase) -> issue url
+let fbShow=null, fbId=null;
+
+async function loadFeedback(){
+  try{
+    const iss=await fetch(`https://api.github.com/repos/${REPO}/issues?state=all&per_page=100`).then(r=>r.json());
+    (Array.isArray(iss)?iss:[]).forEach(i=>{
+      const m=/^פידבק: (.+)$/.exec(i.title||"");
+      if(m&&!FEEDBACK.has(m[1].toLowerCase())) FEEDBACK.set(m[1].toLowerCase(),i.html_url);
+    });
+  }catch(e){}
+  render(currentFilter);
+}
+
+async function openFeedback(title,tmdbId){
+  fbShow=title; fbId=tmdbId;
+  document.getElementById('fbTitle').textContent=title;
+  document.getElementById('fbLiked').value=''; document.getElementById('fbDisliked').value='';
+  const box=document.getElementById('fbActors'); box.innerHTML='<span class="fbnote">טוען שחקנים...</span>';
+  document.getElementById('fbOverlay').classList.add('open');
+  let cast=[];
+  if(TMDB_KEY&&tmdbId){
+    try{
+      const c=await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/aggregate_credits?api_key=${TMDB_KEY}`).then(r=>r.json());
+      cast=(c.cast||[]).slice(0,5);
+    }catch(e){}
+  }
+  box.innerHTML=cast.length?cast.map(a=>`
+    <div class="actorrow"><span class="an"><bdi>${a.name}</bdi></span>
+      <select data-actor="${a.name.replace(/"/g,'')}">
+        <option value="">לא דירגתי</option>
+        <option value="אהבתי מאוד">אהבתי מאוד</option>
+        <option value="בסדר">בסדר</option>
+        <option value="לא אהבתי">לא אהבתי</option>
+      </select>
+    </div>`).join(''):'<span class="fbnote">לא נמצאו שחקנים, אפשר לכתוב בטקסט למעלה</span>';
+}
+
+document.getElementById('fbCancel').onclick=()=>document.getElementById('fbOverlay').classList.remove('open');
+document.getElementById('fbOverlay').addEventListener('click',e=>{if(e.target.id==='fbOverlay')document.getElementById('fbOverlay').classList.remove('open');});
+document.getElementById('fbSend').onclick=()=>{
+  const rating=document.getElementById('fbRating').value;
+  const liked=document.getElementById('fbLiked').value.trim();
+  const disliked=document.getElementById('fbDisliked').value.trim();
+  const actors=[...document.querySelectorAll('#fbActors select')].map(s=>s.value?`- ${s.dataset.actor}: ${s.value}`:null).filter(Boolean);
+  let body=`סדרה: ${fbShow}\nציון: ${rating}\n`;
+  if(liked) body+=`מה אהבתי: ${liked}\n`;
+  if(disliked) body+=`מה פחות עבד: ${disliked}\n`;
+  if(actors.length) body+=`שחקנים:\n${actors.join('\n')}\n`;
+  window.open(`https://github.com/${REPO}/issues/new?title=${encodeURIComponent('פידבק: '+fbShow)}&body=${encodeURIComponent(body)}`,'_blank');
+  document.getElementById('fbOverlay').classList.remove('open');
+};
+
 // ====== גילוי יומי: מועמדות חדשות בהתאמה גבוהה ======
 // רץ בכל פתיחת דף. קוריאה + ארה"ב, פשע/מסתורין, ציון 7.5+ עם לפחות 100 מצביעים,
 // ששודרו בחצי השנה האחרונה, בלי מה שכבר ברשימות.
 const KNOWN=new Set([...shows.map(s=>s.t.toLowerCase()),
  "the husband","teach you a lesson","as you stood by","beyond the bar","the judge returns",
- "squid game","alice in borderland"]);
+ "squid game","alice in borderland","agent kim reactivated"]);
 
 async function discover(){
   if(!TMDB_KEY) return;
@@ -221,17 +337,26 @@ async function discover(){
       .slice(0,8);
     if(!found.length) return;
     document.getElementById('discGrid').innerHTML=found.map(x=>`
-      <a class="disc-card" href="https://www.themoviedb.org/tv/${x.id}" target="_blank" rel="noopener">
-        <div class="dp" style="background-image:url('https://image.tmdb.org/t/p/w342${x.poster_path}')"></div>
-        <div class="db">
-          <div class="dn"><bdi>${x.name}</bdi></div>
-          <div class="dm">TMDB ${x.vote_average.toFixed(1)} · ${(x.first_air_date||"").slice(0,4)} · ${(x.origin_country||[]).includes('KR')?'קוריאה':'ארה"ב'}</div>
-        </div>
-      </a>`).join('');
+      <div class="disc-card">
+        <a href="https://www.themoviedb.org/tv/${x.id}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+          <div class="dp" style="background-image:url('https://image.tmdb.org/t/p/w342${x.poster_path}')"></div>
+          <div class="db">
+            <div class="dn"><bdi>${x.name}</bdi></div>
+            <div class="dm">TMDB ${x.vote_average.toFixed(1)} · ${(x.first_air_date||"").slice(0,4)} · ${(x.origin_country||[]).includes('KR')?'קוריאה':'ארה"ב'}</div>
+          </div>
+        </a>
+        <button class="dseen" data-n="${x.name.replace(/"/g,'&quot;')}" data-id="${x.id}">ראיתי</button>
+      </div>`).join('');
     document.getElementById('discover').hidden=false;
+    document.querySelectorAll('.dseen').forEach(b=>{
+      const n=b.dataset.n.toLowerCase();
+      if(FEEDBACK.has(n)){b.textContent='ערוך דירוג';b.onclick=()=>window.open(FEEDBACK.get(n),'_blank');}
+      else b.onclick=()=>openFeedback(b.dataset.n,+b.dataset.id);
+    });
   }catch(e){/* בלי רשת: האזור פשוט לא מוצג */}
 }
 discover();
+loadFeedback();
 </script>
 </body>
 </html>
