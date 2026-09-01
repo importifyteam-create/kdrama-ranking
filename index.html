@@ -251,13 +251,11 @@ function renderWatched(){
         <div class="wr">ציון: <b class="${w.pending?'pending':''}">${w.rating}</b></div>
         ${w.note?`<div class="wnote">${w.note}</div>`:''}
       </div>
-      <button class="wbtn" data-wi="${i}">${w.url?'ערוך דירוג':(w.needsRating?'דרג':'עדכן דירוג')}</button>
+      <button class="wbtn" data-wi="${i}">${FEEDBACK.has(w.t.toLowerCase())?'ערוך דירוג':(w.needsRating?'דרג':'עדכן דירוג')}</button>
     </div>`).join('');
   wg.querySelectorAll('.wbtn').forEach(b=>{
     const w=WATCHED[+b.dataset.wi];
-    const ex=FEEDBACK.get(w.t.toLowerCase());
-    if(w.url||ex) b.onclick=()=>window.open(w.url||ex,'_blank');
-    else b.onclick=()=>openFeedback(w.t,w.tmid);
+    b.onclick=()=>openFeedback(w.t,w.tmid);
   });
   document.getElementById('nWatched').textContent=`(${WATCHED.length})`;
   document.getElementById('nRank').textContent=`(${shows.filter(s=>!s.moved).length})`;
@@ -323,8 +321,8 @@ function render(filter){
   count.textContent=list.length===total?`מציג את כל ${total} הסדרות`:`${list.length} סדרות בסינון הנוכחי`;
   grid.querySelectorAll('.seenbtn').forEach(b=>{
     const s=shows[+b.dataset.si];
-    if(FEEDBACK.has(s.t.toLowerCase())){b.textContent='ערוך דירוג';b.classList.add('done');b.onclick=()=>window.open(FEEDBACK.get(s.t.toLowerCase()),'_blank');}
-    else b.onclick=()=>openFeedback(s.t,s.tmid);
+    if(FEEDBACK.has(s.t.toLowerCase())){b.textContent='ערוך דירוג';b.classList.add('done');}
+    b.onclick=()=>openFeedback(s.t,s.tmid);
   });
 }
 
@@ -381,13 +379,14 @@ async function loadFeedback(){
     const iss=await fetch(`https://api.github.com/repos/${REPO}/issues?state=all&per_page=100`).then(r=>r.json());
     (Array.isArray(iss)?iss:[]).forEach(i=>{
       const m=/^פידבק: (.+)$/.exec(i.title||"");
-      if(m&&!FEEDBACK.has(m[1].toLowerCase())) FEEDBACK.set(m[1].toLowerCase(),i.html_url);
+      // הרשימה ממוינת מהחדש לישן, הראשון שנתפס = הפידבק העדכני
+      if(m&&!FEEDBACK.has(m[1].toLowerCase())) FEEDBACK.set(m[1].toLowerCase(),{url:i.html_url,body:i.body||''});
     });
     // סדרה מהדירוג שקיבלה פידבק עוברת ל"ראיתי" עד הסריקה הבאה של קלוד
     shows.forEach(s=>{
       if(!s.moved&&FEEDBACK.has(s.t.toLowerCase())){
         s.moved=true;
-        WATCHED.unshift({t:s.t,y:parseInt(s.y),rating:"פידבק נשלח",note:"ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד",pending:true,url:FEEDBACK.get(s.t.toLowerCase()),tmid:s.tmid});
+        WATCHED.unshift({t:s.t,y:parseInt(s.y),rating:"פידבק נשלח",note:"ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד",pending:true,tmid:s.tmid});
       }
     });
     renumber();
@@ -398,10 +397,20 @@ async function loadFeedback(){
 renderWatched();
 enrichWatched();
 
+function parseFb(body){
+  const g=re=>{const m=re.exec(body||'');return m?m[1].trim():'';};
+  return {rating:g(/ציון: (.+)/),liked:g(/מה אהבתי: (.+)/),disliked:g(/מה פחות עבד: (.+)/),
+    actors:Object.fromEntries([...(body||'').matchAll(/^- (.+?): (.+)$/gm)].map(m=>[m[1].trim(),m[2].trim()]))};
+}
+
 async function openFeedback(title,tmdbId){
   fbShow=title; fbId=tmdbId;
+  const prev=FEEDBACK.has(title.toLowerCase())?parseFb(FEEDBACK.get(title.toLowerCase()).body):null;
   document.getElementById('fbTitle').textContent=title;
-  document.getElementById('fbLiked').value=''; document.getElementById('fbDisliked').value='';
+  document.getElementById('fbLiked').value=prev?prev.liked:'';
+  document.getElementById('fbDisliked').value=prev?prev.disliked:'';
+  const rSel=document.getElementById('fbRating');
+  rSel.value=[...rSel.options].some(o=>o.value===(prev&&prev.rating))?prev.rating:'8-9 - מצוינת';
   const box=document.getElementById('fbActors'); box.innerHTML='<span class="fbnote">טוען שחקנים...</span>';
   document.getElementById('fbOverlay').classList.add('open');
   let cast=[];
@@ -428,6 +437,9 @@ async function openFeedback(title,tmdbId){
         <option value="לא אהבתי">לא אהבתי</option>
       </select>
     </div>`;}).join(''):'<span class="fbnote">לא נמצאו שחקנים, אפשר לכתוב בטקסט למעלה</span>';
+  if(prev&&prev.actors){
+    box.querySelectorAll('select').forEach(s=>{if(prev.actors[s.dataset.actor])s.value=prev.actors[s.dataset.actor];});
+  }
 }
 
 document.getElementById('fbCancel').onclick=()=>document.getElementById('fbOverlay').classList.remove('open');
@@ -446,7 +458,11 @@ document.getElementById('fbSend').onclick=async ()=>{
     const txt=await res.text();
     let d={}; try{d=JSON.parse(txt);}catch(_){}
     if(!d.ok) throw new Error(`Worker ${res.status}: ${txt.slice(0,120)}`);
-    FEEDBACK.set(fbShow.toLowerCase(),d.url);
+    let sentBody=`סדרה: ${fbShow}\nציון: ${rating}\n`;
+    if(liked) sentBody+=`מה אהבתי: ${liked}\n`;
+    if(disliked) sentBody+=`מה פחות עבד: ${disliked}\n`;
+    if(actors.length) sentBody+=`שחקנים:\n${actors.join('\n')}\n`;
+    FEEDBACK.set(fbShow.toLowerCase(),{url:d.url,body:sentBody});
     btn.textContent='נשלח ✓';
     setTimeout(()=>{
       document.getElementById('fbOverlay').classList.remove('open');
@@ -454,9 +470,8 @@ document.getElementById('fbSend').onclick=async ()=>{
       // הסדרה עוברת מיידית ל"ראיתי" כממתינה לעיבוד
       shows.forEach(s=>{
         if(!s.moved&&s.t===fbShow){s.moved=true;
-          WATCHED.unshift({t:s.t,y:parseInt(s.y),rating:"פידבק נשלח",note:"ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד",pending:true,url:d.url,tmid:s.tmid,poster:s.poster});}
+          WATCHED.unshift({t:s.t,y:parseInt(s.y),rating:"פידבק נשלח",note:"ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד",pending:true,tmid:s.tmid,poster:s.poster});}
       });
-      WATCHED.forEach(w=>{if(w.t===fbShow&&!w.pending){w.url=d.url;}});
       renumber(); render(currentFilter); renderWatched();
     },900);
   }catch(e){
@@ -507,8 +522,8 @@ async function discover(){
     document.getElementById('discover').hidden=false;
     document.querySelectorAll('.dseen').forEach(b=>{
       const n=b.dataset.n.toLowerCase();
-      if(FEEDBACK.has(n)){b.textContent='ערוך דירוג';b.onclick=()=>window.open(FEEDBACK.get(n),'_blank');}
-      else b.onclick=()=>openFeedback(b.dataset.n,+b.dataset.id);
+      if(FEEDBACK.has(n)) b.textContent='ערוך דירוג';
+      b.onclick=()=>openFeedback(b.dataset.n,+b.dataset.id);
     });
   }catch(e){/* בלי רשת: האזור פשוט לא מוצג */}
 }
