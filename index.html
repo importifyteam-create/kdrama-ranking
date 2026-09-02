@@ -1461,8 +1461,8 @@ function renderFavActors(){
   el.querySelectorAll('.favact').forEach(a=>{a.onclick=()=>{if(a.dataset.pid)openActorCard(+a.dataset.pid,a.dataset.n);};});
 }
 function updateRecsCount(){
-  const total=RECS.length+favActorNames().length;
-  document.getElementById('nRecs').textContent=total?`(${total})`:'';
+  const el=document.getElementById('nRecs'); if(!el) return;
+  el.textContent=RECS.length?`(${RECS.length})`:'';
 }
 function renderRecs(){
   updateRecsCount();
