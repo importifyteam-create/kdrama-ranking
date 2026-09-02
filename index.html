@@ -225,7 +225,7 @@
     <nav id="side" aria-label="ניווט">
       <button class="side-btn" data-v="rank" aria-current="true">הדירוג <span class="n" id="nRank"></span></button>
       <button class="side-btn" data-v="watched" aria-current="false">ראיתי <span class="n" id="nWatched"></span></button>
-      <button class="side-btn" data-v="recs" aria-current="false">מועדפים <span class="n" id="nRecs"></span></button>
+      <button class="side-btn" data-v="recs" aria-current="false">לצפייה <span class="n" id="nRecs"></span></button>
       <button class="side-btn" data-v="disc" aria-current="false">חדשים</button>
       <button class="side-btn" data-v="settings" aria-current="false">הגדרות</button>
     </nav>
@@ -275,30 +275,33 @@
       </section>
 
       <section id="view-recs" hidden>
-        <p class="count">כל המועדפים שלך במקום אחד: סדרות ששמרת ושחקנים שסימנת בכוכב. פריט עם התאמה מספיק גבוהה אפשר לצרף לדירוג הראשי.</p>
+        <p class="count">רשימת הצפייה שלך: סדרות ששמרת לצפייה. ברגע שתדרג סדרה היא עוברת אוטומטית ל"ראיתי".</p>
         <div class="addbar">
           <input class="fsel" id="recSearch" placeholder="חפש סדרה (גם בעברית)..." dir="ltr" aria-label="חיפוש סדרה">
           <div id="recResults"></div>
         </div>
-        <div class="secttl">סדרות מועדפות</div>
         <div class="castgrid" id="recGrid"></div>
-        <div class="secttl">שחקנים מועדפים</div>
-        <div class="castgrid" id="favActors"><span class="fbnote">עדיין לא סימנת שחקנים בכוכב</span></div>
       </section>
 
       <section id="view-settings" hidden>
         <div class="tabs" role="tablist">
           <button class="tabbtn" aria-selected="true" data-t="taste">טעם אישי</button>
+          <button class="tabbtn" aria-selected="false" data-t="actors">שחקנים מועדפים</button>
+        </div>
+        <div id="tab-actors" hidden>
+          <p class="count">שחקנים שסימנת בכוכב. שחקן מועדף הוא הסיגנל החיובי החזק ביותר במנוע.</p>
+          <div class="castgrid" id="favActors"><span class="fbnote">עדיין לא סימנת שחקנים בכוכב</span></div>
         </div>
         <div id="tab-taste">
-          <p class="count">מה שמניע את המנוע: מה אתה אוהב, מה פוסל, ואיך נראית סדרה שמתאימה לך. שינוי כאן משפיע על הדירוג ועל ההמלצות הבאות, אחרי שקלוד יעבד אותו בסריקה.</p>
+          <p class="count">הטעם שלך נבנה מהתגיות שאתה מסמן בכרטיסי הסדרות. קלוד קורא אותן בסריקה, מעדכן את הפרופיל ומדרג מחדש.</p>
+          <p class="count" id="scanLine"></p>
           <div class="secttl">התגיות שלך</div>
           <div class="hint">מחושב אוטומטית מהתגיות שסימנת בכרטיסי הסדרות, משוקלל לפי הציון שנתת</div>
           <div id="tagProfile"></div>
-          <div class="secttl" style="margin-top:26px">בכתיבה חופשית</div>
+          <div class="secttl" style="margin-top:26px">הערות</div>
           <div id="tasteForm"></div>
           <div class="fbactions" style="max-width:420px">
-            <button class="fbsend" id="tasteSave">שמור טעם אישי</button>
+            <button class="fbsend" id="tasteSave">שמור הערות</button>
           </div>
           <p class="fbnote" id="tasteNote">השינויים נשמרים ומסתנכרנים בין מכשירים.</p>
         </div>
@@ -384,7 +387,7 @@ renumber();
 
 
 // ====== שפה: אנגלית כברירת מחדל, עברית בלחיצה ======
-const I18N=[["נקמה", "Revenge"], ["צדק מנצח", "Justice served"], ["שחיתות שלטונית", "Institutional corruption"], ["טיוח וסודות", "Cover-up and secrets"], ["חקירה ופיצוח תיק", "Investigation"], ["אולם בית משפט", "Courtroom"], ["כלא", "Prison"], ["סוד משפחתי", "Family secret"], ["פערי מעמדות", "Class divide"], ["משחק הישרדות", "Survival game"], ["בריונות", "Bullying"], ["פוליטיקה", "Politics"], ["פשע מאורגן", "Organized crime"], ["זהות בדויה", "Undercover identity"], ["רוצח סדרתי", "Serial killer"], ["הרשעת שווא", "Wrongful conviction"], ["תיק חדש בכל פרק", "A case per episode"], ["עלילה אחת מתמשכת", "One continuous arc"], ["בנייה איטית", "Slow burn"], ["טוויסטים", "Twists"], ["צוות דמויות", "Ensemble cast"], ["קפיצה בזמן", "Time jump"], ["ריאליסטי ומאופק", "Grounded and restrained"], ["אפל", "Dark"], ["מדכא", "Bleak"], ["מוגזם ולא אמין", "Over the top"], ["הומור", "Humor"], ["רומנטיקה", "Romance"], ["אלים", "Violent"], ["מתח לאורך כל הדרך", "Constant tension"], ["נבל בלתי נשכח", "Unforgettable villain"], ["אנטי גיבור", "Antihero"], ["יחסי מנטור וחניך", "Mentor and rookie"], ["גיבורה מובילה", "Female lead"], ["חברות ונאמנות", "Friendship and loyalty"], ["דמויות אפורות מוסרית", "Morally gray characters"], ["דמויות שטוחות", "Flat characters"], ["כימיה בין הדמויות", "Character chemistry"], ["מרגש", "Moving"], ["כבד רגשית", "Emotionally heavy"], ["מוסר השכל", "A moral"], ["סוף מספק", "Satisfying ending"], ["סוף מאכזב", "Disappointing ending"], ["מסר מנחם", "Hopeful message"], ["כתיבה חזקה", "Strong writing"], ["משחק מצוין", "Great acting"], ["קרבות מבוימים היטב", "Well-choreographed action"], ["קרבות מרושלים", "Sloppy action"], ["בימוי וצילום", "Direction and cinematography"], ["קצב טוב", "Good pacing"], ["נמרח באמצע", "Drags in the middle"], ["סוף חפוז", "Rushed ending"], ["פסקול", "Soundtrack"], ["אלמנט פנטזיה", "Fantasy element"], ["יותר מדי רומנטיקה", "Too much romance"], ["ארוך מדי", "Too long"], ["המשך חלש מהמקור", "Sequel weaker than the original"], ["מלודרמטי", "Melodramatic"], ["נושא", "Theme"], ["מבנה", "Structure"], ["טון", "Tone"], ["דמויות", "Characters"], ["רגש", "Emotion"], ["ביצוע", "Craft"], ["רגישויות", "Watch-outs"], ["מה עבד ומה לא", "What worked and what didn't"], ["לחיצה אחת = אהבתי, לחיצה שנייה = הפריע לי, שלישית מבטלת", "One tap = liked it, two taps = bothered me, three clears"], ["הצג את כל התגיות", "Show all tags"], ["הצג פחות תגיות", "Show fewer tags"], ["התגיות שלך", "Your tags"], ["מחושב אוטומטית מהתגיות שסימנת בכרטיסי הסדרות, משוקלל לפי הציון שנתת", "Computed automatically from the tags you marked on series cards, weighted by the score you gave"], ["בכתיבה חופשית", "In your own words"], ["התגיות שתסמן בכרטיסי הסדרות יבנו כאן את הפרופיל אוטומטית.", "Tags you mark on series cards will build this profile automatically."],["חפש סדרה בשם, בעברית או באנגלית", "Search a series by name, in English or Hebrew"], ["חפש שחקן בשם, בעברית או באנגלית", "Search an actor by name, in English or Hebrew"],["חפש סדרה (גם בעברית)...", "Search series (Hebrew works too)..."], ["חפש שחקן (גם בעברית)...", "Search actor (Hebrew works too)..."],["הגדרות", "Settings"], ["טעם אישי", "Taste profile"], ["מה שמניע את המנוע: מה אתה אוהב, מה פוסל, ואיך נראית סדרה שמתאימה לך. שינוי כאן משפיע על הדירוג ועל ההמלצות הבאות, אחרי שקלוד יעבד אותו בסריקה.", "What drives the engine: what you like, what rules a show out, and what a good match looks like. Changes here affect the ranking and future recommendations once Claude processes them."], ["שמור טעם אישי", "Save taste profile"], ["שומר...", "Saving..."], ["נשמר ✓", "Saved ✓"], ["השינויים נשמרים ומסתנכרנים בין מכשירים.", "Changes are saved and synced across devices."], ["מה מושך אותי", "What draws me in"], ["הדרייברים המרכזיים, לפי סדר החשיבות", "The main drivers, in order of weight"], ["עולם הסדרה", "Setting"], ["הקשרים וסביבות שעובדים לי", "Contexts and settings that work for me"], ["מה פוסל", "Deal breakers"], ["הסיגנלים השליליים, החזק ביותר ראשון", "Negative signals, strongest first"], ["פורמט", "Format"], ["אורך, מבנה וזמינות", "Length, structure and availability"], ["היקף", "Scope"], ["מה נכנס לחיפוש", "What the search covers"],     ["דרמות קוריאניות בלבד.", "Korean dramas only."],["דרמות קוריאניות בלבד, מדורגות לפי הפרופיל המלא של משה: צדק מנצח, תיק אחרי תיק, נבל מצמרר, מתח של טיוח, ומשחקי הישרדות עם כללים. הציונים, הפוסטרים, הזמינות והטריילרים נטענים חיים מ-TMDB.", "Korean dramas only, ranked by Moshe's full taste profile: justice that lands, case-after-case structure, a chilling villain, cover-up tension, and survival games with rules. Scores, posters, availability and trailers load live from TMDB."], ["עודכן 02.09.2026 · דרמות קוריאניות בלבד · ריאליזם, עומק רגשי ומוסר השכל", "Updated 02.09.2026 · Korean dramas only · realism, emotional depth and a moral"], ["הדירוג משקלל התאמה לפרופיל + ציון MDL. עם מפתח TMDB, הפוסטרים והנתונים נטענים מ-", "Ranking weighs profile match + MDL score. With a TMDB key, posters and data load from "], ["ההיסטוריה המלאה שמורה בסקיל kdrama-recommender.", "Full history is stored in the kdrama-recommender skill."], ["הדירוג", "Ranking"], ["ראיתי", "Watched"], ["מועדפים", "Favorites"], ["חדשים", "New"], ["סינון לפי פלטפורמה", "Filter by platform"], ["סינון", "Filters"], ["הכל", "All"], ["אחר", "Other"], ["כל ציון", "Any score"], ["ומעלה", "and up"], ["כל שנה", "Any year"], ["עד 2022", "Up to 2022"], ["חפש שחקן...", "Search actor..."], ["חפש סדרה...", "Search series..."], ["חיפוש שחקן", "Actor search"], ["חיפוש סדרה", "Series search"], ["סינון לפי ציון", "Filter by score"], ["סינון לפי שנה", "Filter by year"], ["מציג את כל", "Showing all"], ["הסדרות", "series"], ["סדרות בסינון הנוכחי", "series in current filter"], ["מקום", "Rank"], ["התאמה:", "Match:"], ["התאמה גבוהה", "Strong match"], ["התאמה טובה", "Good match"], ["התאמה חלקית", "Partial match"], ["ציון MDL בקישור", "MDL score at link"], ["זמין בתאילנד:", "In Thailand:"], ["אין סטרימינג בתאילנד כרגע", "Not streaming in Thailand right now"], ["זמינות בדף MDL", "Availability on MDL"], ["זמינות בקישור", "Availability at link"], ["בסגנון של", "Like"], ["טריילר", "Trailer"], ["עדכן דירוג", "Update rating"], ["ערוך דירוג", "Edit rating"], ["דרג", "Rate"], ["הסדרות שכבר צפית, עם הציונים שנתת. סדרה שדירגת דרך הדף מופיעה כאן כ\"ממתין לעיבוד\" עד הסריקה הבאה של קלוד, שמכניסה אותה לפרופיל ומדרגת את הכל מחדש.", "Series you've already watched, with the ratings you gave. Anything you rate here shows as \"pending\" until Claude's next pass folds it into the profile and re-ranks everything."], ["הוסף כותר שראית: הקלד שם סדרה...", "Add something you watched: type a series name..."], ["הוספת כותר", "Add a title"], ["ציון:", "Rating:"], ["פידבק נשלח", "Feedback sent"], ["עודכן דרך הדף, ממתין לעיבוד", "Updated here, pending processing"], ["ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד", "Enters the profile and re-ranking on Claude's next pass"], ["נוסף ידנית, ייכנס לפרופיל בסריקה הבאה של קלוד", "Added manually, enters the profile on Claude's next pass"], ["נוסף ידנית, ממתין לעיבוד של קלוד", "Added manually, pending Claude's processing"], ["ממתין לדירוג", "Awaiting rating"], ["לחץ 'דרג' כדי לתת ציון ופידבק", "Press 'Rate' to give a score and feedback"], ["10 - מושלמת", "10 - perfect"], ["8-9 - מצוינת", "8-9 - excellent"], ["6-7 - טובה", "6-7 - good"], ["פחות מ-6", "Below 6"], ["נטשתי באמצע", "Dropped midway"], ["עונה 1:", "Season 1:"], ["כמה אהבת?", "How much did you like it?"], ["מה אהבת הכי הרבה?", "What did you like most?"], ["הנבל, המשחקים, הסוף...", "The villain, the games, the ending..."], ["מה פחות עבד?", "What worked less?"], ["אפשר להשאיר ריק", "Can be left empty"], ["שחקנים ראשיים (דרג רק את מי שבלט לך)", "Main cast (rate only whoever stood out)"], ["שלח פידבק", "Send feedback"], ["ביטול", "Cancel"], ["שולח...", "Sending..."], ["נשלח ✓", "Sent ✓"], ["שגיאה, נסה שוב", "Error, try again"], ["לא דירגתי", "Not rated"], ["אהבתי מאוד", "Loved them"], ["בסדר", "Fine"], ["לא אהבתי", "Didn't like"], ["טוען שחקנים...", "Loading cast..."], ["לא נמצאו שחקנים, אפשר לכתוב בטקסט למעלה", "No cast found, you can write it in the text above"], ["הפידבק נשלח ישירות מהדף. קלוד קורא אותו בשיחה הבאה, מעדכן את הפרופיל וציוני השחקנים, ומדרג את הכל מחדש. לעריכת פידבק שכבר נשלח, כפתור \"ערוך דירוג\" פותח אותו.", "Feedback is sent straight from this page. Claude reads it next session, updates the profile and actor scores, and re-ranks everything. To edit feedback you already sent, the \"Edit rating\" button reopens it."], ["השליחה הישירה נכשלה, עוברים לגיטהאב.", "Direct sending failed, falling back to GitHub."], ["סיבה טכנית (שלח לקלוד):", "Technical reason (send to Claude):"], ["שחקן מועדף", "Favorite actor"], ["סמן כשחקן מועדף", "Mark as favorite actor"], ["שחקנים", "Cast"], ["הסדרות שלו", "Their series"], ["סמן כמועדף", "Mark favorite"], ["מועדף", "Favorite"], ["הוסף למועדפים", "Add to favorites"], ["כבר במועדפים", "Already in favorites"], ["צרף לדירוג הראשי", "Add to main ranking"], ["כבר בדירוג", "Already ranked"], ["סנן את הרשימות לפי השחקן", "Filter lists by this actor"], ["טוען כרטיס שחקן...", "Loading actor card..."], ["טוען כרטיס סדרה...", "Loading series card..."], ["שגיאה בטעינת השחקן", "Error loading actor"], ["לא הצלחתי לטעון את הסדרה", "Couldn't load the series"], ["לא נמצאו סדרות", "No series found"], ["סגור", "Close"], ["ההוספה נשמרת ומסתנכרנת בין מכשירים. קלוד בודק כל צירוף לדירוג בסריקה הבאה וקובע התאמה סופית.", "Additions are saved and synced across devices. Claude vets every ranking addition on the next pass and sets a final match."], ["בדירוג שלך", "In your ranking"], ["כל המועדפים שלך במקום אחד: סדרות ששמרת ושחקנים שסימנת בכוכב. פריט עם התאמה מספיק גבוהה אפשר לצרף לדירוג הראשי.", "All your favorites in one place: series you saved and actors you starred. Anything with a high enough match can be added to the main ranking."], ["סדרות מועדפות", "Favorite series"], ["שחקנים מועדפים", "Favorite actors"], ["עדיין לא סימנת שחקנים בכוכב", "You haven't starred any actors yet"], ["עדיין לא שמרת סדרות", "You haven't saved any series yet"], ["הסר מהמועדפים", "Remove from favorites"], ["כותרים חדשים שעברו את הרף, מתעדכן אוטומטית בכל פתיחת דף", "New titles that passed the bar, refreshed automatically on every visit"], ["אין כרגע סדרות חדשות שעוברות את הרף. הרשימה מתרעננת בכל פתיחת דף.", "No new series pass the bar right now. The list refreshes on every visit."], ["נוסף ידנית מהחיפוש, ממתין לבדיקה של קלוד בסריקה הבאה.", "Added manually from search, pending Claude's review on the next pass."], ["הבחירה שלך", "Your pick"], ["חפש כל סדרה, פתח פרטים מלאים, ושמור לרשימת ההמלצות האישית שלך. פריט עם התאמה מספיק גבוהה אפשר לצרף לדירוג הראשי, והוא יסומן כאומדן עד שקלוד יבדוק אותו בסריקה.", "Search any series, open full details, and save it to your personal list."], ["הסתיימה", "Ended"], ["עדיין משודרת", "Airing"], ["בוטלה", "Canceled"], ["בהפקה", "In production"], ["עונות", "seasons"], ["פרקים", "episodes"], ["מתח פסיכולוגי", "Psychological thriller"], ["קומדיה שחורה", "Dark comedy"], ["מתח", "Thriller"], ["מסתורין", "Mystery"], ["משפטי", "Legal"], ["פשע", "Crime"], ["דרמה", "Drama"], ["נקמה", "Revenge"], ["מלודרמה", "Melodrama"], ["רומנטיקה", "Romance"], ["אקשן", "Action"], ["נואר", "Noir"], ["פוליטי", "Political"], ["הישרדות", "Survival"], ["סאטירה", "Satire"], ["חיים", "Life"], ["מוסר", "Morality"], ["קומדיה", "Comedy"], ["מדע בדיוני ופנטזיה", "Sci-fi and fantasy"], ["אקשן והרפתקאות", "Action and adventure"], ["מלחמה ופוליטיקה", "War and politics"], ["דוקומנטרי", "Documentary"], ["ריאליטי", "Reality"], ["אנימציה", "Animation"], ["דרמה פסיכולוגית", "Psychological drama"], ["ניווט", "Navigation"], ["קוריאני", "Korean"], ["נקמה מתוכננת 18 שנה בבריוני בית ספר ובכל מי שעמד מנגד. נבלים בלתי נשכחים וסוף שבו כולם משלמים.", "Revenge planned over 18 years against school bullies and everyone who stood by. Unforgettable villains and an ending where they all pay."], ["שני שוטרים עם סודות רודפים רוצח מפרשה בת 20 שנה. כמה מותר להפוך למפלצת כדי לתפוס מפלצת. פרס הדרמה של השנה, רגש ומוסר בלי טיפת הגזמה.", "Two cops with secrets chase a killer from a 20-year-old case. How much of a monster can you become to catch one. Drama of the year, emotion and morality without a drop of excess."], ["שלוש עורכות דין שמייצגות נשים קורבנות פשע, וסוד בן 20 שנה שחוזר. לנקמה אין התיישנות.", "Three lawyers representing women who are crime victims, and a 20-year-old secret that resurfaces. Revenge has no statute of limitations."], ["שתי נשים בכלא: הודאה כוזבת ברצח תמורת רצח אמיתי. נאמנות, טיוח, וקיר שנסגר.", "Two women in prison: a false murder confession in exchange for a real murder. Loyalty, cover-up, and walls closing in."], ["תובע חסר רגשות ובלשית מפרקים שחיתות בתוך הפרקליטות. פסגת המתח המשפטי הקוריאני.", "An emotionless prosecutor and a detective dismantle corruption inside the prosecution service. The peak of Korean legal suspense."], ["הפרופיילר הראשון של קוריאה, מבוסס על סיפור ורוצחים אמיתיים. מאופק, ממוקד בקורבנות ובאבל. הריאליזם בהתגלמותו.", "Korea's first criminal profiler, based on a true story and real killers. Restrained, focused on victims and grief. Realism at its purest."], ["שופטת קשוחה בבית משפט לנוער, בין עונש לשיקום. שני שחקנים ראשיים מ-Teach You a Lesson.", "A hard-line judge in juvenile court, torn between punishment and rehabilitation. Two leads from Teach You a Lesson."], ["מהנדס בגיל העמידה ועובדת צעירה מצילים זה את זה בלי לדעת. בחירות מוסריות, כאב וריפוי. מקום 83 בכל הזמנים. איטית וכבדה, ופסגת הרגש ומוסר ההשכל.", "A middle-aged engineer and a young worker save each other without realizing it. Moral choices, pain and healing. Ranked 83 all-time. Slow and heavy, and the peak of emotion and moral weight."], ["בעל מושלם עם זהות בדויה, ואשתו הבלשית מתקרבת לאמת. מתח טיוח ברמת על, מקום 51 בכל הזמנים.", "A perfect husband with a fabricated identity, and his detective wife closing in on the truth. Cover-up tension at the highest level, ranked 51 all-time."], ["בלש מודח ותובע יריב רודפים רוצח סדרתי, בהשראת פרשה אמיתית. המדוברת של השנה.", "A demoted detective and a rival prosecutor chase a serial killer, inspired by a real case. The most talked-about series of the year."], ["פרופיילר אגדי מגלה שהבת שלו מעורבת ברצח שהוא חוקר.", "A legendary profiler discovers his daughter is involved in the murder he's investigating."], ["פרופיילרית וסדרת רציחות עם חתיכות פאזל, לצד הבלש שחשד בה בעבר.", "A profiler and a string of murders marked with puzzle pieces, alongside the detective who once suspected her."], ["אמא שהורגת בעצמה את האחראי למות בנה אחרי שהמערכת נכשלה.", "A mother who kills the man responsible for her son's death herself, after the system failed."], ["בת של מבריח שנרצח מוחדרת למשטרה כסוכנת כפולה כדי למצוא את הרוצח. כוריאוגרפיית קרבות מהטובות שנעשו. עם Park Hee-soon מ-The Judge Returns.", "The daughter of a murdered smuggler goes undercover in the police to find his killer. Some of the best fight choreography ever made. With Park Hee-soon from The Judge Returns."], ["משחק דירוג כיתתי שהופך בנות למטרות בריונות. החדשה בתחתית הפירמידה מפרקת את המשחק, והנבלית משלמת.", "A classroom ranking game that turns girls into bullying targets. The new student at the bottom takes the game apart, and the villain pays."], ["שופט שמטייח את פשע בנו מול אב ראש ארגון פשע. מבוסס על \"כבודו\" הישראלית.", "A judge covering up his son's crime against a crime-boss father. Based on the Israeli series Kvodo."], ["ראש ממשלה שמתכנן להתנקש בנשיא המושחת בשם הצדק. פוליטי יותר ממשפטי.", "A prime minister planning to assassinate the corrupt president in the name of justice. More political than legal."], ["שחקנית צמרת שמתמרנת את כולם ומסתירה אישיות מפחידה.", "A top actress who manipulates everyone and hides a terrifying personality."], ["החצי השני חלש מהפתיחה", "The second half is weaker than the opening"], ["הרבה הומור שחור בין רגעי האפלה", "Plenty of dark humor between the bleak moments"], ["אלימה מאוד (18+)", "Very violent (18+)"], ["מלודרמה איטית, נגד הפרופיל שלך", "Slow melodrama, against your profile"], ["מעבר מלודרמטי באמצע וסוף חפוז", "A melodramatic detour midway and a rushed ending"], ["לא סדרת פשע. איטית, כבדה, ושווה את זה", "Not a crime series. Slow, heavy, and worth it"], ["מוגזם מדי, רחוק מהמציאות. נעצר אחרי חצי פרק", "Too exaggerated, far from reality. Stopped after half an episode"], ["סדרת העוגן: החברות, הטיוח, הרעה האמיתית, והצדק בסוף", "The anchor series: the friendship, the cover-up, the real villain, and justice at the end"], ["התיקים בבית המשפט, תיק לכל פרק, הטובים מנצחים", "The courtroom cases, a case per episode, the good guys win"], ["המושחתים נענשים תיק אחרי תיק. מינוס: פנטזיית הזמן", "The corrupt are punished case after case. Minus: the time-travel fantasy"], ["החוטף המצמרר והמרדף הכפול. מינוס: נמרח בסוף", "The chilling kidnapper and the double chase. Minus: it drags at the end"], ["פיצוח המשחקים, הדמויות האפורות, המסתורין", "Cracking the games, the gray characters, the mystery"], ["עונות ההמשך: 6-7", "Sequel seasons: 6-7"], ["הצדק המיידי. מינוס: אלימות מוגזמת ולא מקצועית", "Immediate justice. Minus: exaggerated, unprofessional violence"], ["מה שביקשת: רגש ומוסר השכל", "What you asked for: emotion and a moral"]];
+const I18N=[["לצפייה", "Watchlist"], ["רשימת הצפייה שלך: סדרות ששמרת לצפייה. ברגע שתדרג סדרה היא עוברת אוטומטית ל\"ראיתי\".", "Your watchlist: series you saved for later. The moment you rate one, it moves to Watched automatically."], ["הוסף לרשימת הצפייה", "Add to watchlist"], ["הסר מרשימת הצפייה", "Remove from watchlist"], ["לא מעניין", "Not interested"], ["מסמן...", "Marking..."], ["ראית", "Watched"], ["בדירוג", "Ranked"], ["חדש", "New"], ["שחקנים שסימנת בכוכב. שחקן מועדף הוא הסיגנל החיובי החזק ביותר במנוע.", "Actors you starred. A favorite actor is the strongest positive signal in the engine."], ["הטעם שלך נבנה מהתגיות שאתה מסמן בכרטיסי הסדרות. קלוד קורא אותן בסריקה, מעדכן את הפרופיל ומדרג מחדש.", "Your taste is built from the tags you mark on series cards. Claude reads them on each pass, updates the profile and re-ranks."], ["הסריקה האחרונה של קלוד:", "Claude's last pass:"], ["ממתינים לסריקה:", "Waiting for the next pass:"], ["הערות", "Notes"], ["הערות לקלוד", "Notes for Claude"], ["כל מה שתגיות לא תופסות: משפט או שניים", "Anything tags don't capture: a sentence or two"], ["שמור הערות", "Save notes"],["נקמה", "Revenge"], ["צדק מנצח", "Justice served"], ["שחיתות שלטונית", "Institutional corruption"], ["טיוח וסודות", "Cover-up and secrets"], ["חקירה ופיצוח תיק", "Investigation"], ["אולם בית משפט", "Courtroom"], ["כלא", "Prison"], ["סוד משפחתי", "Family secret"], ["פערי מעמדות", "Class divide"], ["משחק הישרדות", "Survival game"], ["בריונות", "Bullying"], ["פוליטיקה", "Politics"], ["פשע מאורגן", "Organized crime"], ["זהות בדויה", "Undercover identity"], ["רוצח סדרתי", "Serial killer"], ["הרשעת שווא", "Wrongful conviction"], ["תיק חדש בכל פרק", "A case per episode"], ["עלילה אחת מתמשכת", "One continuous arc"], ["בנייה איטית", "Slow burn"], ["טוויסטים", "Twists"], ["צוות דמויות", "Ensemble cast"], ["קפיצה בזמן", "Time jump"], ["ריאליסטי ומאופק", "Grounded and restrained"], ["אפל", "Dark"], ["מדכא", "Bleak"], ["מוגזם ולא אמין", "Over the top"], ["הומור", "Humor"], ["רומנטיקה", "Romance"], ["אלים", "Violent"], ["מתח לאורך כל הדרך", "Constant tension"], ["נבל בלתי נשכח", "Unforgettable villain"], ["אנטי גיבור", "Antihero"], ["יחסי מנטור וחניך", "Mentor and rookie"], ["גיבורה מובילה", "Female lead"], ["חברות ונאמנות", "Friendship and loyalty"], ["דמויות אפורות מוסרית", "Morally gray characters"], ["דמויות שטוחות", "Flat characters"], ["כימיה בין הדמויות", "Character chemistry"], ["מרגש", "Moving"], ["כבד רגשית", "Emotionally heavy"], ["מוסר השכל", "A moral"], ["סוף מספק", "Satisfying ending"], ["סוף מאכזב", "Disappointing ending"], ["מסר מנחם", "Hopeful message"], ["כתיבה חזקה", "Strong writing"], ["משחק מצוין", "Great acting"], ["קרבות מבוימים היטב", "Well-choreographed action"], ["קרבות מרושלים", "Sloppy action"], ["בימוי וצילום", "Direction and cinematography"], ["קצב טוב", "Good pacing"], ["נמרח באמצע", "Drags in the middle"], ["סוף חפוז", "Rushed ending"], ["פסקול", "Soundtrack"], ["אלמנט פנטזיה", "Fantasy element"], ["יותר מדי רומנטיקה", "Too much romance"], ["ארוך מדי", "Too long"], ["המשך חלש מהמקור", "Sequel weaker than the original"], ["מלודרמטי", "Melodramatic"], ["נושא", "Theme"], ["מבנה", "Structure"], ["טון", "Tone"], ["דמויות", "Characters"], ["רגש", "Emotion"], ["ביצוע", "Craft"], ["רגישויות", "Watch-outs"], ["מה עבד ומה לא", "What worked and what didn't"], ["לחיצה אחת = אהבתי, לחיצה שנייה = הפריע לי, שלישית מבטלת", "One tap = liked it, two taps = bothered me, three clears"], ["הצג את כל התגיות", "Show all tags"], ["הצג פחות תגיות", "Show fewer tags"], ["התגיות שלך", "Your tags"], ["מחושב אוטומטית מהתגיות שסימנת בכרטיסי הסדרות, משוקלל לפי הציון שנתת", "Computed automatically from the tags you marked on series cards, weighted by the score you gave"], ["בכתיבה חופשית", "In your own words"], ["התגיות שתסמן בכרטיסי הסדרות יבנו כאן את הפרופיל אוטומטית.", "Tags you mark on series cards will build this profile automatically."],["חפש סדרה בשם, בעברית או באנגלית", "Search a series by name, in English or Hebrew"], ["חפש שחקן בשם, בעברית או באנגלית", "Search an actor by name, in English or Hebrew"],["חפש סדרה (גם בעברית)...", "Search series (Hebrew works too)..."], ["חפש שחקן (גם בעברית)...", "Search actor (Hebrew works too)..."],["הגדרות", "Settings"], ["טעם אישי", "Taste profile"], ["מה שמניע את המנוע: מה אתה אוהב, מה פוסל, ואיך נראית סדרה שמתאימה לך. שינוי כאן משפיע על הדירוג ועל ההמלצות הבאות, אחרי שקלוד יעבד אותו בסריקה.", "What drives the engine: what you like, what rules a show out, and what a good match looks like. Changes here affect the ranking and future recommendations once Claude processes them."], ["שמור טעם אישי", "Save taste profile"], ["שומר...", "Saving..."], ["נשמר ✓", "Saved ✓"], ["השינויים נשמרים ומסתנכרנים בין מכשירים.", "Changes are saved and synced across devices."], ["מה מושך אותי", "What draws me in"], ["הדרייברים המרכזיים, לפי סדר החשיבות", "The main drivers, in order of weight"], ["עולם הסדרה", "Setting"], ["הקשרים וסביבות שעובדים לי", "Contexts and settings that work for me"], ["מה פוסל", "Deal breakers"], ["הסיגנלים השליליים, החזק ביותר ראשון", "Negative signals, strongest first"], ["פורמט", "Format"], ["אורך, מבנה וזמינות", "Length, structure and availability"], ["היקף", "Scope"], ["מה נכנס לחיפוש", "What the search covers"],     ["דרמות קוריאניות בלבד.", "Korean dramas only."],["דרמות קוריאניות בלבד, מדורגות לפי הפרופיל המלא של משה: צדק מנצח, תיק אחרי תיק, נבל מצמרר, מתח של טיוח, ומשחקי הישרדות עם כללים. הציונים, הפוסטרים, הזמינות והטריילרים נטענים חיים מ-TMDB.", "Korean dramas only, ranked by Moshe's full taste profile: justice that lands, case-after-case structure, a chilling villain, cover-up tension, and survival games with rules. Scores, posters, availability and trailers load live from TMDB."], ["עודכן 02.09.2026 · דרמות קוריאניות בלבד · ריאליזם, עומק רגשי ומוסר השכל", "Updated 02.09.2026 · Korean dramas only · realism, emotional depth and a moral"], ["הדירוג משקלל התאמה לפרופיל + ציון MDL. עם מפתח TMDB, הפוסטרים והנתונים נטענים מ-", "Ranking weighs profile match + MDL score. With a TMDB key, posters and data load from "], ["ההיסטוריה המלאה שמורה בסקיל kdrama-recommender.", "Full history is stored in the kdrama-recommender skill."], ["הדירוג", "Ranking"], ["ראיתי", "Watched"], ["מועדפים", "Favorites"], ["חדשים", "New"], ["סינון לפי פלטפורמה", "Filter by platform"], ["סינון", "Filters"], ["הכל", "All"], ["אחר", "Other"], ["כל ציון", "Any score"], ["ומעלה", "and up"], ["כל שנה", "Any year"], ["עד 2022", "Up to 2022"], ["חפש שחקן...", "Search actor..."], ["חפש סדרה...", "Search series..."], ["חיפוש שחקן", "Actor search"], ["חיפוש סדרה", "Series search"], ["סינון לפי ציון", "Filter by score"], ["סינון לפי שנה", "Filter by year"], ["מציג את כל", "Showing all"], ["הסדרות", "series"], ["סדרות בסינון הנוכחי", "series in current filter"], ["מקום", "Rank"], ["התאמה:", "Match:"], ["התאמה גבוהה", "Strong match"], ["התאמה טובה", "Good match"], ["התאמה חלקית", "Partial match"], ["ציון MDL בקישור", "MDL score at link"], ["זמין בתאילנד:", "In Thailand:"], ["אין סטרימינג בתאילנד כרגע", "Not streaming in Thailand right now"], ["זמינות בדף MDL", "Availability on MDL"], ["זמינות בקישור", "Availability at link"], ["בסגנון של", "Like"], ["טריילר", "Trailer"], ["עדכן דירוג", "Update rating"], ["ערוך דירוג", "Edit rating"], ["דרג", "Rate"], ["הסדרות שכבר צפית, עם הציונים שנתת. סדרה שדירגת דרך הדף מופיעה כאן כ\"ממתין לעיבוד\" עד הסריקה הבאה של קלוד, שמכניסה אותה לפרופיל ומדרגת את הכל מחדש.", "Series you've already watched, with the ratings you gave. Anything you rate here shows as \"pending\" until Claude's next pass folds it into the profile and re-ranks everything."], ["הוסף כותר שראית: הקלד שם סדרה...", "Add something you watched: type a series name..."], ["הוספת כותר", "Add a title"], ["ציון:", "Rating:"], ["פידבק נשלח", "Feedback sent"], ["עודכן דרך הדף, ממתין לעיבוד", "Updated here, pending processing"], ["ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד", "Enters the profile and re-ranking on Claude's next pass"], ["נוסף ידנית, ייכנס לפרופיל בסריקה הבאה של קלוד", "Added manually, enters the profile on Claude's next pass"], ["נוסף ידנית, ממתין לעיבוד של קלוד", "Added manually, pending Claude's processing"], ["ממתין לדירוג", "Awaiting rating"], ["לחץ 'דרג' כדי לתת ציון ופידבק", "Press 'Rate' to give a score and feedback"], ["10 - מושלמת", "10 - perfect"], ["8-9 - מצוינת", "8-9 - excellent"], ["6-7 - טובה", "6-7 - good"], ["פחות מ-6", "Below 6"], ["נטשתי באמצע", "Dropped midway"], ["עונה 1:", "Season 1:"], ["כמה אהבת?", "How much did you like it?"], ["מה אהבת הכי הרבה?", "What did you like most?"], ["הנבל, המשחקים, הסוף...", "The villain, the games, the ending..."], ["מה פחות עבד?", "What worked less?"], ["אפשר להשאיר ריק", "Can be left empty"], ["שחקנים ראשיים (דרג רק את מי שבלט לך)", "Main cast (rate only whoever stood out)"], ["שלח פידבק", "Send feedback"], ["ביטול", "Cancel"], ["שולח...", "Sending..."], ["נשלח ✓", "Sent ✓"], ["שגיאה, נסה שוב", "Error, try again"], ["לא דירגתי", "Not rated"], ["אהבתי מאוד", "Loved them"], ["בסדר", "Fine"], ["לא אהבתי", "Didn't like"], ["טוען שחקנים...", "Loading cast..."], ["לא נמצאו שחקנים, אפשר לכתוב בטקסט למעלה", "No cast found, you can write it in the text above"], ["הפידבק נשלח ישירות מהדף. קלוד קורא אותו בשיחה הבאה, מעדכן את הפרופיל וציוני השחקנים, ומדרג את הכל מחדש. לעריכת פידבק שכבר נשלח, כפתור \"ערוך דירוג\" פותח אותו.", "Feedback is sent straight from this page. Claude reads it next session, updates the profile and actor scores, and re-ranks everything. To edit feedback you already sent, the \"Edit rating\" button reopens it."], ["השליחה הישירה נכשלה, עוברים לגיטהאב.", "Direct sending failed, falling back to GitHub."], ["סיבה טכנית (שלח לקלוד):", "Technical reason (send to Claude):"], ["שחקן מועדף", "Favorite actor"], ["סמן כשחקן מועדף", "Mark as favorite actor"], ["שחקנים", "Cast"], ["הסדרות שלו", "Their series"], ["סמן כמועדף", "Mark favorite"], ["מועדף", "Favorite"], ["הוסף למועדפים", "Add to favorites"], ["כבר במועדפים", "Already in favorites"], ["צרף לדירוג הראשי", "Add to main ranking"], ["כבר בדירוג", "Already ranked"], ["סנן את הרשימות לפי השחקן", "Filter lists by this actor"], ["טוען כרטיס שחקן...", "Loading actor card..."], ["טוען כרטיס סדרה...", "Loading series card..."], ["שגיאה בטעינת השחקן", "Error loading actor"], ["לא הצלחתי לטעון את הסדרה", "Couldn't load the series"], ["לא נמצאו סדרות", "No series found"], ["סגור", "Close"], ["ההוספה נשמרת ומסתנכרנת בין מכשירים. קלוד בודק כל צירוף לדירוג בסריקה הבאה וקובע התאמה סופית.", "Additions are saved and synced across devices. Claude vets every ranking addition on the next pass and sets a final match."], ["בדירוג שלך", "In your ranking"], ["כל המועדפים שלך במקום אחד: סדרות ששמרת ושחקנים שסימנת בכוכב. פריט עם התאמה מספיק גבוהה אפשר לצרף לדירוג הראשי.", "All your favorites in one place: series you saved and actors you starred. Anything with a high enough match can be added to the main ranking."], ["סדרות מועדפות", "Favorite series"], ["שחקנים מועדפים", "Favorite actors"], ["עדיין לא סימנת שחקנים בכוכב", "You haven't starred any actors yet"], ["עדיין לא שמרת סדרות", "You haven't saved any series yet"], ["הסר מהמועדפים", "Remove from favorites"], ["כותרים חדשים שעברו את הרף, מתעדכן אוטומטית בכל פתיחת דף", "New titles that passed the bar, refreshed automatically on every visit"], ["אין כרגע סדרות חדשות שעוברות את הרף. הרשימה מתרעננת בכל פתיחת דף.", "No new series pass the bar right now. The list refreshes on every visit."], ["נוסף ידנית מהחיפוש, ממתין לבדיקה של קלוד בסריקה הבאה.", "Added manually from search, pending Claude's review on the next pass."], ["הבחירה שלך", "Your pick"], ["חפש כל סדרה, פתח פרטים מלאים, ושמור לרשימת ההמלצות האישית שלך. פריט עם התאמה מספיק גבוהה אפשר לצרף לדירוג הראשי, והוא יסומן כאומדן עד שקלוד יבדוק אותו בסריקה.", "Search any series, open full details, and save it to your personal list."], ["הסתיימה", "Ended"], ["עדיין משודרת", "Airing"], ["בוטלה", "Canceled"], ["בהפקה", "In production"], ["עונות", "seasons"], ["פרקים", "episodes"], ["מתח פסיכולוגי", "Psychological thriller"], ["קומדיה שחורה", "Dark comedy"], ["מתח", "Thriller"], ["מסתורין", "Mystery"], ["משפטי", "Legal"], ["פשע", "Crime"], ["דרמה", "Drama"], ["נקמה", "Revenge"], ["מלודרמה", "Melodrama"], ["רומנטיקה", "Romance"], ["אקשן", "Action"], ["נואר", "Noir"], ["פוליטי", "Political"], ["הישרדות", "Survival"], ["סאטירה", "Satire"], ["חיים", "Life"], ["מוסר", "Morality"], ["קומדיה", "Comedy"], ["מדע בדיוני ופנטזיה", "Sci-fi and fantasy"], ["אקשן והרפתקאות", "Action and adventure"], ["מלחמה ופוליטיקה", "War and politics"], ["דוקומנטרי", "Documentary"], ["ריאליטי", "Reality"], ["אנימציה", "Animation"], ["דרמה פסיכולוגית", "Psychological drama"], ["ניווט", "Navigation"], ["קוריאני", "Korean"], ["נקמה מתוכננת 18 שנה בבריוני בית ספר ובכל מי שעמד מנגד. נבלים בלתי נשכחים וסוף שבו כולם משלמים.", "Revenge planned over 18 years against school bullies and everyone who stood by. Unforgettable villains and an ending where they all pay."], ["שני שוטרים עם סודות רודפים רוצח מפרשה בת 20 שנה. כמה מותר להפוך למפלצת כדי לתפוס מפלצת. פרס הדרמה של השנה, רגש ומוסר בלי טיפת הגזמה.", "Two cops with secrets chase a killer from a 20-year-old case. How much of a monster can you become to catch one. Drama of the year, emotion and morality without a drop of excess."], ["שלוש עורכות דין שמייצגות נשים קורבנות פשע, וסוד בן 20 שנה שחוזר. לנקמה אין התיישנות.", "Three lawyers representing women who are crime victims, and a 20-year-old secret that resurfaces. Revenge has no statute of limitations."], ["שתי נשים בכלא: הודאה כוזבת ברצח תמורת רצח אמיתי. נאמנות, טיוח, וקיר שנסגר.", "Two women in prison: a false murder confession in exchange for a real murder. Loyalty, cover-up, and walls closing in."], ["תובע חסר רגשות ובלשית מפרקים שחיתות בתוך הפרקליטות. פסגת המתח המשפטי הקוריאני.", "An emotionless prosecutor and a detective dismantle corruption inside the prosecution service. The peak of Korean legal suspense."], ["הפרופיילר הראשון של קוריאה, מבוסס על סיפור ורוצחים אמיתיים. מאופק, ממוקד בקורבנות ובאבל. הריאליזם בהתגלמותו.", "Korea's first criminal profiler, based on a true story and real killers. Restrained, focused on victims and grief. Realism at its purest."], ["שופטת קשוחה בבית משפט לנוער, בין עונש לשיקום. שני שחקנים ראשיים מ-Teach You a Lesson.", "A hard-line judge in juvenile court, torn between punishment and rehabilitation. Two leads from Teach You a Lesson."], ["מהנדס בגיל העמידה ועובדת צעירה מצילים זה את זה בלי לדעת. בחירות מוסריות, כאב וריפוי. מקום 83 בכל הזמנים. איטית וכבדה, ופסגת הרגש ומוסר ההשכל.", "A middle-aged engineer and a young worker save each other without realizing it. Moral choices, pain and healing. Ranked 83 all-time. Slow and heavy, and the peak of emotion and moral weight."], ["בעל מושלם עם זהות בדויה, ואשתו הבלשית מתקרבת לאמת. מתח טיוח ברמת על, מקום 51 בכל הזמנים.", "A perfect husband with a fabricated identity, and his detective wife closing in on the truth. Cover-up tension at the highest level, ranked 51 all-time."], ["בלש מודח ותובע יריב רודפים רוצח סדרתי, בהשראת פרשה אמיתית. המדוברת של השנה.", "A demoted detective and a rival prosecutor chase a serial killer, inspired by a real case. The most talked-about series of the year."], ["פרופיילר אגדי מגלה שהבת שלו מעורבת ברצח שהוא חוקר.", "A legendary profiler discovers his daughter is involved in the murder he's investigating."], ["פרופיילרית וסדרת רציחות עם חתיכות פאזל, לצד הבלש שחשד בה בעבר.", "A profiler and a string of murders marked with puzzle pieces, alongside the detective who once suspected her."], ["אמא שהורגת בעצמה את האחראי למות בנה אחרי שהמערכת נכשלה.", "A mother who kills the man responsible for her son's death herself, after the system failed."], ["בת של מבריח שנרצח מוחדרת למשטרה כסוכנת כפולה כדי למצוא את הרוצח. כוריאוגרפיית קרבות מהטובות שנעשו. עם Park Hee-soon מ-The Judge Returns.", "The daughter of a murdered smuggler goes undercover in the police to find his killer. Some of the best fight choreography ever made. With Park Hee-soon from The Judge Returns."], ["משחק דירוג כיתתי שהופך בנות למטרות בריונות. החדשה בתחתית הפירמידה מפרקת את המשחק, והנבלית משלמת.", "A classroom ranking game that turns girls into bullying targets. The new student at the bottom takes the game apart, and the villain pays."], ["שופט שמטייח את פשע בנו מול אב ראש ארגון פשע. מבוסס על \"כבודו\" הישראלית.", "A judge covering up his son's crime against a crime-boss father. Based on the Israeli series Kvodo."], ["ראש ממשלה שמתכנן להתנקש בנשיא המושחת בשם הצדק. פוליטי יותר ממשפטי.", "A prime minister planning to assassinate the corrupt president in the name of justice. More political than legal."], ["שחקנית צמרת שמתמרנת את כולם ומסתירה אישיות מפחידה.", "A top actress who manipulates everyone and hides a terrifying personality."], ["החצי השני חלש מהפתיחה", "The second half is weaker than the opening"], ["הרבה הומור שחור בין רגעי האפלה", "Plenty of dark humor between the bleak moments"], ["אלימה מאוד (18+)", "Very violent (18+)"], ["מלודרמה איטית, נגד הפרופיל שלך", "Slow melodrama, against your profile"], ["מעבר מלודרמטי באמצע וסוף חפוז", "A melodramatic detour midway and a rushed ending"], ["לא סדרת פשע. איטית, כבדה, ושווה את זה", "Not a crime series. Slow, heavy, and worth it"], ["מוגזם מדי, רחוק מהמציאות. נעצר אחרי חצי פרק", "Too exaggerated, far from reality. Stopped after half an episode"], ["סדרת העוגן: החברות, הטיוח, הרעה האמיתית, והצדק בסוף", "The anchor series: the friendship, the cover-up, the real villain, and justice at the end"], ["התיקים בבית המשפט, תיק לכל פרק, הטובים מנצחים", "The courtroom cases, a case per episode, the good guys win"], ["המושחתים נענשים תיק אחרי תיק. מינוס: פנטזיית הזמן", "The corrupt are punished case after case. Minus: the time-travel fantasy"], ["החוטף המצמרר והמרדף הכפול. מינוס: נמרח בסוף", "The chilling kidnapper and the double chase. Minus: it drags at the end"], ["פיצוח המשחקים, הדמויות האפורות, המסתורין", "Cracking the games, the gray characters, the mystery"], ["עונות ההמשך: 6-7", "Sequel seasons: 6-7"], ["הצדק המיידי. מינוס: אלימות מוגזמת ולא מקצועית", "Immediate justice. Minus: exaggerated, unprofessional violence"], ["מה שביקשת: רגש ומוסר השכל", "What you asked for: emotion and a moral"]];
 const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const MAP_HE=Object.fromEntries(I18N), MAP_EN=Object.fromEntries(I18N.map(p=>[p[1],p[0]]));
 const RE_HE=new RegExp(I18N.map(p=>p[0]).sort((a,b)=>b.length-a.length).map(esc).join('|'),'g');
@@ -466,7 +469,7 @@ function renderWatched(){
         <div class="wr">ציון: <b class="${(w.pending||changed)?'pending':''}">${eff}</b>${changed?' <span class="wnote pending">עודכן דרך הדף, ממתין לעיבוד</span>':''}</div>
         ${w.note?`<div class="wnote">${w.note}</div>`:''}
       </div>
-      <button class="wbtn" data-wi="${i}">${FEEDBACK.has(w.t.toLowerCase())?'ערוך דירוג':(w.needsRating?'דרג':'עדכן דירוג')}</button>
+      <button class="wbtn" data-wi="${i}">${FEEDBACK.has(w.t.toLowerCase())?'ערוך דירוג':'דרג'}</button>
     </div>`;}).join('');
   wg.querySelectorAll('.wclick').forEach(p=>{
     const w=WATCHED[+p.dataset.wi2];
@@ -499,6 +502,14 @@ async function enrichWatched(){
 }
 
 // ====== ניווט בין אזורים ======
+document.querySelectorAll('.tabbtn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tabbtn').forEach(x=>x.setAttribute('aria-selected','false'));
+    b.setAttribute('aria-selected','true');
+    document.getElementById('tab-taste').hidden=b.dataset.t!=='taste';
+    document.getElementById('tab-actors').hidden=b.dataset.t!=='actors';
+  });
+});
 document.querySelectorAll('.side-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.side-btn').forEach(b=>b.setAttribute('aria-current','false'));
@@ -561,7 +572,7 @@ function render(filter){
           <a href="${s.mdlU}" target="_blank" rel="noopener">MyDramaList</a>
           <a href="${s.imdbU}" target="_blank" rel="noopener">IMDb</a>
           <a href="${s.yt||`https://www.youtube.com/results?search_query=${encodeURIComponent(s.t+' kdrama official trailer')}`}" target="_blank" rel="noopener">טריילר</a>
-          <button class="seenbtn" data-si="${shows.indexOf(s)}">ראיתי</button>
+          <button class="seenbtn" data-si="${shows.indexOf(s)}">דרג</button>
         </div>
       </div>
     </article>`).join('');
@@ -649,6 +660,7 @@ const BASE_FB={
 async function loadFeedback(){
   try{
     const iss=await fetch(`https://api.github.com/repos/${REPO}/issues?state=all&per_page=100`).then(r=>r.json());
+    pendingCount=(Array.isArray(iss)?iss:[]).filter(i=>/^פידבק: /.test(i.title||"")&&(i.created_at||'')>LAST_SCAN+'T23:59:59Z').length;
     (Array.isArray(iss)?iss:[]).forEach(i=>{
       if(/^פידבק: טעם: /.test(i.title||"")){ if(!window.__tasteLoaded){window.__tasteLoaded=true;applyTasteFromIssue(i.body||'');} return; }
       const favA=/^פידבק: שחקן: (.+)$/.exec(i.title||"");
@@ -656,14 +668,20 @@ async function loadFeedback(){
       if(favA){if(!FAVA.has(favA[1].trim()))FAVA.set(favA[1].trim(),true);return;}
       if(unfavA){if(!FAVA.has(unfavA[1].trim()))FAVA.set(unfavA[1].trim(),false);return;}
       const rec=/^פידבק: המלצה: (.+)$/.exec(i.title||"");
-      const toMain=/^פידבק: לדירוג: (.+)$/.exec(i.title||"");
-      if(rec){RECS_T.add(rec[1].trim());return;}
-      if(toMain){MAIN_T.add(toMain[1].trim());return;}
+      const unrec=/^פידבק: הסר-לצפייה: (.+)$/.exec(i.title||"");
+      const skip=/^פידבק: דילוג: (.+)$/.exec(i.title||"");
+      if(/^פידבק: לדירוג: /.test(i.title||"")) return; // מנגנון ישן, מבוטל
+      if(rec){const t=rec[1].trim();if(!WLDEC.has(t.toLowerCase())){WLDEC.add(t.toLowerCase());RECS_T.add(t);}return;}
+      if(unrec){const t=unrec[1].trim();if(!WLDEC.has(t.toLowerCase())){WLDEC.add(t.toLowerCase());}return;}
+      if(skip){SKIP.add(skip[1].trim().toLowerCase());return;}
       const m=/^פידבק: (.+)$/.exec(i.title||"");
       // הרשימה ממוינת מהחדש לישן, הראשון שנתפס = הפידבק העדכני
       if(m&&!FEEDBACK.has(m[1].toLowerCase())) FEEDBACK.set(m[1].toLowerCase(),{url:i.html_url,body:i.body||''});
     });
+    shows.forEach(s=>{ if(!s.moved&&SKIP.has(s.t.toLowerCase())) s.moved=true; });
+    [...RECS_T].forEach(t=>{ if(statusOf(t)==='watched'||SKIP.has(t.toLowerCase())) RECS_T.delete(t); });
     hydrateLists();
+    renderScanLine();
     // פידבק על כותר שלא ברשימות (נוסף ידנית) נכנס ל"ראיתי"
     FEEDBACK.forEach((v,k)=>{
       if(!shows.some(s=>s.t.toLowerCase()===k)&&!WATCHED.some(w=>w.t.toLowerCase()===k)){
@@ -803,6 +821,10 @@ document.getElementById('fbSend').onclick=async ()=>{
         if(!s.moved&&s.t===fbShow){s.moved=true;
           WATCHED.unshift({t:s.t,y:parseInt(s.y),rating:"פידבק נשלח",note:"ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד",pending:true,tmid:s.tmid,poster:s.poster});}
       });
+      const ri=RECS.findIndex(c=>c.t.toLowerCase()===fbShow.toLowerCase()); if(ri>-1) RECS.splice(ri,1);
+      [...RECS_T].forEach(t=>{if(t.toLowerCase()===fbShow.toLowerCase())RECS_T.delete(t);});
+      const di=DISC.findIndex(c=>c.t.toLowerCase()===fbShow.toLowerCase()); if(di>-1) DISC.splice(di,1);
+      renderRecs(); renderDisc();
       if(!WATCHED.some(w=>w.t.toLowerCase()===fbShow.toLowerCase())){
         const meta=PICKED[fbShow]||{};
         WATCHED.unshift({t:fbShow,y:meta.y||'',rating:"פידבק נשלח",note:"נוסף ידנית, ייכנס לפרופיל בסריקה הבאה של קלוד",pending:true,tmid:fbId,poster:meta.poster});
@@ -844,16 +866,7 @@ async function toggleFav(name,btn){
 
 // ====== הגדרות: טעם אישי ======
 const TASTE_DEF=[
- {k:'drivers',ven:"1. Justice that lands: the wrongdoers pay in the end\n2. Case-after-case structure with an overarching villain\n3. Cover-up tension: lies unraveling, walls closing in\n4. A chilling, unforgettable central villain\n5. Loyalty and sacrifice between characters, especially female friendship\n6. Rich plot, emotional depth and a moral",label:'מה מושך אותי',hint:'הדרייברים המרכזיים, לפי סדר החשיבות',
-  v:"1. צדק מנצח: הרעים משלמים בסוף\n2. מבנה של תיק אחרי תיק עם נבל-על מאחורי הכל\n3. מתח של טיוח: שקרים שמתפרקים והקיר שנסגר\n4. נבל מרכזי מצמרר ובלתי נשכח\n5. נאמנות והקרבה בין הדמויות, במיוחד חברות נשית\n6. עלילה עשירה, עומק רגשי ומוסר השכל"},
- {k:'settings_pref',ven:"Courtrooms, prosecutors, police and investigations. Contemporary, grounded Korea. Survival games with clear rules.",label:'עולם הסדרה',hint:'הקשרים וסביבות שעובדים לי',
-  v:"בית משפט, פרקליטות, משטרה וחקירות. קוריאה עכשווית ומציאותית. משחקי הישרדות עם כללים ברורים."},
- {k:'no',ven:"1. Exaggeration and lack of realism: invincible hero, cartoonish villain, comic-book tone. Rules a show out even when the theme is perfect\n2. Fantasy inside a grounded story (time travel, for example)\n3. A second half that drags, loses focus or repeats itself\n4. Sloppy, unprofessional fight choreography\n5. Rom-coms, high-school romance, historical sagas, idol-centric shows",label:'מה פוסל',hint:'הסיגנלים השליליים, החזק ביותר ראשון',
-  v:"1. הגזמה וחוסר ריאליזם: גיבור בלתי מנוצח, נבל קריקטורי, טון קומיקסי. פוסל גם כשהנושא מושלם\n2. פנטזיה בתוך סיפור ריאליסטי (למשל חזרה בזמן)\n3. חצי שני שנמרח, מאבד פוקוס או חוזר על עצמו\n4. כוריאוגרפיית קרבות מרושלת ולא מקצועית\n5. קומדיות רומנטיות, רומנטיקה של תיכון, סאגות היסטוריות, סדרות סביב אלילי פופ"},
- {k:'format',ven:"Mini-series of 6 to 16 episodes. Complete first seasons beat sequels. 100+ episode daily dramas are not relevant.",label:'פורמט',hint:'אורך, מבנה וזמינות',
-  v:"מיני-סדרות של 6 עד 16 פרקים. עונות ראשונות שלמות עדיפות על המשכים. דרמות יומיות של 100+ פרקים לא רלוונטיות."},
- {k:'scope',ven:"Korean dramas only.",label:'היקף',hint:'מה נכנס לחיפוש',
-  v:"דרמות קוריאניות בלבד."}
+ {k:'notes',label:'הערות לקלוד',hint:'כל מה שתגיות לא תופסות: משפט או שניים',v:"",ven:""}
 ];
 let TASTE=JSON.parse(JSON.stringify(TASTE_DEF));
 function renderTaste(){
@@ -882,7 +895,7 @@ document.getElementById('tasteSave').onclick=async ()=>{
   btn.disabled=true; btn.textContent='שומר...';
   try{
     const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({show:'טעם: פרופיל',rating:'עדכון',liked:body})});
+      body:JSON.stringify({show:'טעם: הערות',rating:'עדכון',liked:body})});
     const d=await res.json(); if(!d.ok) throw new Error('save failed');
     btn.textContent='נשמר ✓';
     setTimeout(()=>{btn.textContent='שמור טעם אישי';btn.disabled=false;},1400);
@@ -990,8 +1003,20 @@ function renderTagProfile(){
     ${neg.length?`<div class="tagcat"><span class="tagcatlbl">מה פוסל</span>${neg.map(([id,v])=>`<span class="tagchip neg static">${TAGBY[id].he} <b>${v}</b></span>`).join('')}</div>`:''}`;
 }
 
-const RECS_T=new Set(); // כותרים ברשימת ההמלצות (מה-Issues)
-const MAIN_T=new Set(); // כותרים שצורפו ידנית לדירוג הראשי
+const RECS_T=new Set(); // רשימת צפייה (מה-Issues)
+const SKIP=new Set();   // "לא מעניין" (מה-Issues)
+const WLDEC=new Set();  // כותרים שכבר הוחלט לגביהם ברשימת הצפייה (החדש ביותר קובע)
+const LAST_SCAN="2026-09-02"; // מתי קלוד עיבד לאחרונה (מתעדכן בכל רגנרציה)
+let pendingCount=0;
+function statusOf(title){
+  const k=(title||'').toLowerCase();
+  if(SKIP.has(k)) return 'skipped';
+  if(FEEDBACK.has(k)||WATCHED.some(w=>w.t.toLowerCase()===k)) return 'watched';
+  if(shows.some(s=>!s.moved&&s.t.toLowerCase()===k)) return 'ranked';
+  return 'new';
+}
+function inWatchlist(title){return [...RECS_T].some(t=>t.toLowerCase()===(title||'').toLowerCase());}
+const STATUS_HE={watched:'ראית',ranked:'בדירוג',new:'חדש',skipped:'לא מעניין'};
 const RECS=[];
 
 async function tmdbCard(title){
@@ -1063,21 +1088,6 @@ async function sendListAction(prefix,title){
     body:JSON.stringify({show:`${prefix}: ${title}`,rating:'רשימה'})});
   const d=await res.json(); if(!d.ok) throw new Error('list action failed');
 }
-function mainEntryFrom(c){
-  return {t:c.t,m:c.m,o:c.o,y:c.y,tier:c.m>=85?1:c.m>=72?2:3,mdl:null,plat:c.prov||'זמינות בקישור',f:[],provList:c.provList,tint:'var(--tint-crime)',
-    g:c.g,d:'נוסף ידנית מהחיפוש, ממתין לבדיקה של קלוד בסריקה הבאה.',like:["הבחירה שלך"],est:true,
-    tm:c.tm,st:c.st,prov:c.prov,yt:c.yt,poster:c.poster,tmid:c.id,cast:c.cast,
-    mdlU:`https://www.themoviedb.org/tv/${c.id}`,imdbU:c.imdbU||`https://www.themoviedb.org/tv/${c.id}`};
-}
-function insertToMain(c){
-  if(shows.some(s=>s.t.toLowerCase()===c.t.toLowerCase())) return;
-  const e=mainEntryFrom(c);
-  let idx=shows.findIndex(s=>!s.moved&&s.m<e.m);
-  if(idx===-1) idx=shows.length;
-  shows.splice(idx,0,e);
-  KNOWN.add(c.t.toLowerCase());
-  renumber(); render(currentFilter);
-}
 const FAVP=new Map(); // שם שחקן מועדף -> {id, p}
 async function hydrateFavActors(){
   for(const [name,on] of FAVA){
@@ -1132,11 +1142,32 @@ async function hydrateLists(){
   renderRecs();
   hydrateFavActors();
   renderTagProfile();
-  for(const t of MAIN_T){
-    if(!shows.some(s=>s.t.toLowerCase()===t.toLowerCase())){
-      const c=await tmdbCard(t); if(c) insertToMain(c);
-    }
-  }
+}
+function renderScanLine(){
+  const el=document.getElementById('scanLine'); if(!el) return;
+  el.innerHTML=`הסריקה האחרונה של קלוד: <b>${LAST_SCAN}</b>${pendingCount?` · ממתינים לסריקה: <b>${pendingCount}</b>`:''}`;
+}
+async function toggleWatchlist(title,btn){
+  const on=inWatchlist(title);
+  btn.disabled=true;
+  try{
+    await sendListAction(on?'הסר-לצפייה':'המלצה',title);
+    if(on){[...RECS_T].forEach(t=>{if(t.toLowerCase()===title.toLowerCase())RECS_T.delete(t);}); const i=RECS.findIndex(c=>c.t.toLowerCase()===title.toLowerCase()); if(i>-1)RECS.splice(i,1);}
+    else{RECS_T.add(title); const c=await tmdbCard(title); if(c&&!RECS.some(x=>x.t.toLowerCase()===title.toLowerCase()))RECS.push(c);}
+    renderRecs();
+  }catch(e){}
+  btn.disabled=false;
+  return !on;
+}
+async function skipShow(title){
+  await sendListAction('דילוג',title);
+  SKIP.add(title.toLowerCase());
+  shows.forEach(s=>{if(s.t.toLowerCase()===title.toLowerCase())s.moved=true;});
+  const di=DISC.findIndex(c=>c.t.toLowerCase()===title.toLowerCase()); if(di>-1)DISC.splice(di,1);
+  const ri=RECS.findIndex(c=>c.t.toLowerCase()===title.toLowerCase()); if(ri>-1){RECS.splice(ri,1);}
+  [...RECS_T].forEach(t=>{if(t.toLowerCase()===title.toLowerCase())RECS_T.delete(t);});
+  KNOWN.add(title.toLowerCase());
+  renumber(); render(currentFilter); renderDisc(); renderRecs();
 }
 function openDetail(c){
   const el=document.getElementById('dtModal');
@@ -1151,7 +1182,8 @@ function openDetail(c){
         <div>
           <div class="herotitle"><bdi>${c.t}</bdi><span class="heroyr">${c.y}</span></div>
           <div class="meta" style="margin-top:10px">
-            <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}</span>
+            ${c.curated?`<span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}</span>`:''}
+            <span class="tier t2">${STATUS_HE[statusOf(c.t)]||''}${inWatchlist(c.t)?' · לצפייה':''}</span>
             ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
             </div>
         </div>
@@ -1165,9 +1197,10 @@ function openDetail(c){
         ${c.imdbU?`<a href="${c.imdbU}" target="_blank" rel="noopener">IMDb</a>`:''}
         <a href="${c.yt||`https://www.youtube.com/results?search_query=${encodeURIComponent(c.t+' official trailer')}`}" target="_blank" rel="noopener">טריילר</a>
       </div>
-      <div class="fbactions" style="max-width:560px">
-        <button class="fbsend" id="dtRec" ${inRecs?'disabled':''}>${inRecs?'כבר במועדפים':'הוסף למועדפים'}</button>
-        ${c.m>=72?`<button class="fbsend" id="dtMain" style="background:var(--surface);border:1px solid var(--accent);color:var(--accent)" ${inMain?'disabled':''}>${inMain?'כבר בדירוג':'צרף לדירוג הראשי'}</button>`:''}
+      <div class="fbactions" style="max-width:640px;flex-wrap:wrap">
+        <button class="fbsend" id="dtRate">${FEEDBACK.has(c.t.toLowerCase())?'ערוך דירוג':'דרג'}</button>
+        ${statusOf(c.t)!=='watched'?`<button class="fbcancel" id="dtWl">${inWatchlist(c.t)?'הסר מרשימת הצפייה':'הוסף לרשימת הצפייה'}</button>`:''}
+        ${statusOf(c.t)!=='watched'?`<button class="fbcancel" id="dtSkip">לא מעניין</button>`:''}
       </div>
       ${c.castFull&&c.castFull.length?`
       <div class="secttl">שחקנים</div>
@@ -1186,14 +1219,11 @@ function openDetail(c){
   document.getElementById('dtClose').onclick=()=>document.getElementById('dtOverlay').classList.remove('open');
   el.querySelectorAll('#dtCast .star').forEach(b=>{b.onclick=()=>toggleFav(b.dataset.a,b);});
   el.querySelectorAll('.dtActor').forEach(a=>{a.onclick=()=>openActorCard(+a.dataset.pid,a.dataset.n);});
-  const rec=document.getElementById('dtRec');
-  if(rec&&!rec.disabled) rec.onclick=async ()=>{rec.disabled=true;rec.textContent='שומר...';
-    try{await sendListAction('המלצה',c.t);RECS.push(c);KNOWN.add(c.t.toLowerCase());renderRecs();rec.textContent='נשמר ✓';}
-    catch(e){rec.textContent='שגיאה, נסה שוב';rec.disabled=false;}};
-  const mn=document.getElementById('dtMain');
-  if(mn&&!mn.disabled) mn.onclick=async ()=>{mn.disabled=true;mn.textContent='מצרף...';
-    try{await sendListAction('לדירוג',c.t);insertToMain(c);mn.textContent='צורף ✓';}
-    catch(e){mn.textContent='שגיאה, נסה שוב';mn.disabled=false;}};
+  document.getElementById('dtRate').onclick=()=>{document.getElementById('dtOverlay').classList.remove('open');openFeedback(c.t,c.id);};
+  const wl=document.getElementById('dtWl');
+  if(wl) wl.onclick=async ()=>{const now=await toggleWatchlist(c.t,wl); wl.textContent=now?'הסר מרשימת הצפייה':'הוסף לרשימת הצפייה';};
+  const sk=document.getElementById('dtSkip');
+  if(sk) sk.onclick=async ()=>{sk.disabled=true;sk.textContent='מסמן...';try{await skipShow(c.t);document.getElementById('dtOverlay').classList.remove('open');}catch(e){sk.textContent='שגיאה, נסה שוב';sk.disabled=false;}};
 }
 document.getElementById('dtOverlay').addEventListener('click',e=>{if(e.target.id==='dtOverlay')document.getElementById('dtOverlay').classList.remove('open');});
 
@@ -1378,6 +1408,7 @@ async function discover(){
     const found=[...dedup.values()]
       .filter(x=>{
         if(!x.poster_path||KNOWN.has((x.name||"").toLowerCase())) return false;
+        if(SKIP.has((x.name||"").toLowerCase())||inWatchlist(x.name)) return false;
         if(!(x.origin_country||[]).includes('KR')) return false;
         const ageDays=(now-new Date(x.first_air_date||0).getTime())/86400000;
         const minVotes=ageDays<=92?25:100; // סדרה טרייה נכנסת כבר עם 25 מצביעים
@@ -1420,7 +1451,7 @@ function renderDisc(){
         </div>
         <div class="body">
           <div class="meta">
-            <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}</span>
+            <span class="tier t2">חדש</span>
             ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
           </div>
           <p class="genres">${c.g}${c.st?` · ${c.st}`:''}</p>
@@ -1429,7 +1460,7 @@ function renderDisc(){
             <a href="https://www.themoviedb.org/tv/${c.id}" target="_blank" rel="noopener">TMDB</a>
             ${c.imdbU?`<a href="${c.imdbU}" target="_blank" rel="noopener">IMDb</a>`:''}
             <a href="${c.yt||`https://www.youtube.com/results?search_query=${encodeURIComponent(c.t+' official trailer')}`}" target="_blank" rel="noopener">טריילר</a>
-            <button class="seenbtn dseen2" data-n="${c.t.replace(/"/g,'&quot;')}" data-id="${c.id}">ראיתי</button>
+            <button class="seenbtn dseen2" data-n="${c.t.replace(/"/g,'&quot;')}" data-id="${c.id}">דרג</button>
           </div>
         </div>
       </article>`).join('');
