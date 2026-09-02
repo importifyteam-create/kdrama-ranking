@@ -87,7 +87,8 @@
   .dtwrap .meta{font-size:1.05rem}
   .castgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:16px;margin-top:8px}
   .casttile{position:relative;cursor:pointer}
-  .casttile .cph{aspect-ratio:3/4;border-radius:8px;background:#22262e center top/cover no-repeat}
+  .casttile .cph{aspect-ratio:3/4;border-radius:8px;background:#22262e center top/cover no-repeat;display:flex;align-items:center;justify-content:center}
+  .phinit{font-family:'Frank Ruhl Libre',serif;font-size:1.6rem;color:var(--muted)}
   .casttile .cnm{direction:ltr;text-align:left;font-size:.92rem;font-weight:500;margin-top:8px;line-height:1.25}
   .casttile .crl{direction:ltr;text-align:left;font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .casttile .star{position:absolute;top:6px;left:6px;background:rgba(14,16,21,.72);border-radius:50%;min-width:38px;min-height:38px;padding:0}
@@ -380,13 +381,15 @@ async function enrichWatched(){
   if(!TMDB_KEY) return;
   await Promise.all(WATCHED.map(async (w,i)=>{
     try{
-      const sr=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(w.t)}&first_air_date_year=${w.y}`).then(r=>r.json());
-      let hit=(sr.results||[])[0];
+      const q=`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(w.t)}`;
+      const sr=await fetch(w.y?`${q}&first_air_date_year=${w.y}`:q).then(r=>r.json());
+      const pickKR=list=>(list||[]).find(x=>(x.origin_country||[]).includes('KR'))||(list||[])[0];
+      let hit=pickKR(sr.results);
       if(!hit){
-        const sr2=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(w.t)}`).then(r=>r.json());
-        hit=(sr2.results||[])[0];
+        const sr2=await fetch(q).then(r=>r.json());
+        hit=pickKR(sr2.results);
       }
-      if(hit){w.tmid=hit.id;if(hit.poster_path)w.poster=`https://image.tmdb.org/t/p/w185${hit.poster_path}`;}
+      if(hit){w.tmid=hit.id;if(hit.poster_path)w.poster=`https://image.tmdb.org/t/p/w185${hit.poster_path}`;if(!w.y&&hit.first_air_date)w.y=hit.first_air_date.slice(0,4);}
     }catch(e){}
   }));
   renderWatched();
@@ -575,6 +578,7 @@ async function loadFeedback(){
   }catch(e){}
   render(currentFilter);
   renderWatched();
+  enrichWatched(); // כותרים שנוספו דרך פידבק מקבלים פוסטר ושנה
 }
 renderWatched();
 enrichWatched();
@@ -829,7 +833,9 @@ async function hydrateFavActors(){
     if(on&&!FAVP.has(name)){
       try{
         const r=await fetch(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}`).then(x=>x.json());
-        const p=(r.results||[])[0];
+        const list=(r.results||[]);
+        const exact=list.filter(x=>(x.name||'').toLowerCase()===name.toLowerCase());
+        const p=(exact.find(x=>x.profile_path)||list.find(x=>x.profile_path)||exact[0]||list[0]);
         if(p) FAVP.set(name,{id:p.id,p:p.profile_path});
       }catch(e){}
     }
@@ -847,7 +853,7 @@ function renderFavActors(){
     return `
     <div class="casttile">
       <button class="star on" data-a="${n.replace(/"/g,'')}" title="הסר מהמועדפים">★</button>
-      <div class="cph favact" data-n="${n.replace(/"/g,'&quot;')}" data-pid="${info.id||''}" ${info.p?`style="background-image:url('https://image.tmdb.org/t/p/w342${info.p}')"`:''}></div>
+      <div class="cph favact" data-n="${n.replace(/"/g,'&quot;')}" data-pid="${info.id||''}" ${info.p?`style="background-image:url('https://image.tmdb.org/t/p/w342${info.p}')"`:''}>${info.p?'':`<span class="phinit">${n.split(' ').map(w=>w[0]).join('').slice(0,2)}</span>`}</div>
       <div class="cnm favact" data-n="${n.replace(/"/g,'&quot;')}" data-pid="${info.id||''}">★ <bdi>${n}</bdi></div>
     </div>`;}).join('');
   el.querySelectorAll('.star').forEach(b=>{b.onclick=async ()=>{await toggleFav(b.dataset.a,b);renderFavActors();};});
