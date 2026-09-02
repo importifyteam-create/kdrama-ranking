@@ -193,7 +193,7 @@
     <nav id="side" aria-label="ניווט">
       <button class="side-btn" data-v="rank" aria-current="true">הדירוג <span class="n" id="nRank"></span></button>
       <button class="side-btn" data-v="watched" aria-current="false">ראיתי <span class="n" id="nWatched"></span></button>
-      <button class="side-btn" data-v="recs" aria-current="false">המלצות <span class="n" id="nRecs"></span></button>
+      <button class="side-btn" data-v="recs" aria-current="false">מועדפים <span class="n" id="nRecs"></span></button>
       <button class="side-btn" data-v="disc" aria-current="false">חדשים</button>
     </nav>
     <main>
@@ -241,12 +241,15 @@
       </section>
 
       <section id="view-recs" hidden>
-        <p class="count">חפש כל סדרה, פתח פרטים מלאים, ושמור לרשימת ההמלצות האישית שלך. פריט עם התאמה מספיק גבוהה אפשר לצרף לדירוג הראשי, והוא יסומן כאומדן עד שקלוד יבדוק אותו בסריקה.</p>
+        <p class="count">כל המועדפים שלך במקום אחד: סדרות ששמרת ושחקנים שסימנת בכוכב. פריט עם התאמה מספיק גבוהה אפשר לצרף לדירוג הראשי.</p>
         <div class="addbar">
           <input class="fsel" id="recSearch" placeholder="חפש סדרה..." dir="ltr" aria-label="חיפוש סדרה">
           <div id="recResults"></div>
         </div>
+        <div class="secttl">סדרות מועדפות</div>
         <div class="grid" id="recGrid"></div>
+        <div class="secttl">שחקנים מועדפים</div>
+        <div class="castgrid" id="favActors"><span class="fbnote">עדיין לא סימנת שחקנים בכוכב</span></div>
       </section>
 
       <section id="view-disc" hidden>
@@ -730,6 +733,7 @@ async function toggleFav(name,btn){
   const now=!isFav(name);
   btn.classList.toggle('on',now); FAVA.set(name,now);
   try{await sendListAction(now?'שחקן':'שחקן-הסר',name);}catch(e){btn.classList.toggle('on',!now);FAVA.set(name,!now);}
+  if(typeof hydrateFavActors==='function') hydrateFavActors();
 }
 const RECS_T=new Set(); // כותרים ברשימת ההמלצות (מה-Issues)
 const MAIN_T=new Set(); // כותרים שצורפו ידנית לדירוג הראשי
@@ -819,8 +823,42 @@ function insertToMain(c){
   KNOWN.add(c.t.toLowerCase());
   renumber(); render(currentFilter);
 }
+const FAVP=new Map(); // שם שחקן מועדף -> {id, p}
+async function hydrateFavActors(){
+  for(const [name,on] of FAVA){
+    if(on&&!FAVP.has(name)){
+      try{
+        const r=await fetch(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}`).then(x=>x.json());
+        const p=(r.results||[])[0];
+        if(p) FAVP.set(name,{id:p.id,p:p.profile_path});
+      }catch(e){}
+    }
+  }
+  renderFavActors();
+}
+function favActorNames(){return [...FAVA.entries()].filter(([n,v])=>v).map(([n])=>n);}
+function renderFavActors(){
+  const names=favActorNames();
+  updateRecsCount();
+  const el=document.getElementById('favActors');
+  if(!names.length){el.innerHTML='<span class="fbnote">עדיין לא סימנת שחקנים בכוכב</span>';return;}
+  el.innerHTML=names.map(n=>{
+    const info=FAVP.get(n)||{};
+    return `
+    <div class="casttile">
+      <button class="star on" data-a="${n.replace(/"/g,'')}" title="הסר מהמועדפים">★</button>
+      <div class="cph favact" data-n="${n.replace(/"/g,'&quot;')}" data-pid="${info.id||''}" ${info.p?`style="background-image:url('https://image.tmdb.org/t/p/w342${info.p}')"`:''}></div>
+      <div class="cnm favact" data-n="${n.replace(/"/g,'&quot;')}" data-pid="${info.id||''}">★ <bdi>${n}</bdi></div>
+    </div>`;}).join('');
+  el.querySelectorAll('.star').forEach(b=>{b.onclick=async ()=>{await toggleFav(b.dataset.a,b);renderFavActors();};});
+  el.querySelectorAll('.favact').forEach(a=>{a.onclick=()=>{if(a.dataset.pid)openActorCard(+a.dataset.pid,a.dataset.n);};});
+}
+function updateRecsCount(){
+  const total=RECS.length+favActorNames().length;
+  document.getElementById('nRecs').textContent=total?`(${total})`:'';
+}
 function renderRecs(){
-  document.getElementById('nRecs').textContent=RECS.length?`(${RECS.length})`:'';
+  updateRecsCount();
   document.getElementById('recGrid').innerHTML=RECS.map(c=>`
     <article class="card">
       <div class="poster rclick" data-id="${c.id}" style="background:${c.poster?`linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${c.poster}') center 20%/cover no-repeat`:'var(--tint-crime)'}">
@@ -852,6 +890,7 @@ async function hydrateLists(){
     }
   }
   renderRecs();
+  hydrateFavActors();
   for(const t of MAIN_T){
     if(!shows.some(s=>s.t.toLowerCase()===t.toLowerCase())){
       const c=await tmdbCard(t); if(c) insertToMain(c);
@@ -887,7 +926,7 @@ function openDetail(c){
         <a href="${c.yt||`https://www.youtube.com/results?search_query=${encodeURIComponent(c.t+' official trailer')}`}" target="_blank" rel="noopener">טריילר</a>
       </div>
       <div class="fbactions" style="max-width:560px">
-        <button class="fbsend" id="dtRec" ${inRecs?'disabled':''}>${inRecs?'כבר בהמלצות':'הוסף להמלצות'}</button>
+        <button class="fbsend" id="dtRec" ${inRecs?'disabled':''}>${inRecs?'כבר במועדפים':'הוסף למועדפים'}</button>
         ${c.m>=72?`<button class="fbsend" id="dtMain" style="background:var(--surface);border:1px solid var(--accent);color:var(--accent)" ${inMain?'disabled':''}>${inMain?'כבר בדירוג':'צרף לדירוג הראשי'}</button>`:''}
       </div>
       ${c.castFull&&c.castFull.length?`
