@@ -588,16 +588,25 @@ function estMatch(x){
 }
 async function discover(){
   if(!TMDB_KEY) return;
-    const since=new Date(Date.now()-183*24*3600*1000).toISOString().slice(0,10);
-    const base=`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&sort_by=popularity.desc&vote_average.gte=7.5&vote_count.gte=100&with_genres=80%7C9648&first_air_date.gte=${since}`;
-    const [kr,us]=await Promise.all([
-      fetch(`${base}&with_origin_country=KR`).then(r=>r.json()),
-      fetch(`${base}&with_origin_country=US`).then(r=>r.json())
+    const since=new Date(Date.now()-365*24*3600*1000).toISOString().slice(0,10);
+    const base=`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&sort_by=popularity.desc&vote_average.gte=7.5&with_genres=80%7C9648&first_air_date.gte=${since}`;
+    const pages=await Promise.all([
+      fetch(`${base}&with_origin_country=KR&page=1`).then(r=>r.json()),
+      fetch(`${base}&with_origin_country=KR&page=2`).then(r=>r.json()),
+      fetch(`${base}&with_origin_country=US&page=1`).then(r=>r.json()),
+      fetch(`${base}&with_origin_country=US&page=2`).then(r=>r.json())
     ]);
-    const found=[...(kr.results||[]),...(us.results||[])]
-      .filter(x=>x.poster_path&&!KNOWN.has((x.name||"").toLowerCase()))
-      .sort((a,b)=>estMatch(b)-estMatch(a))
-      .slice(0,8);
+    const now=Date.now();
+    const dedup=new Map();
+    pages.flatMap(p=>p.results||[]).forEach(x=>{if(!dedup.has(x.id))dedup.set(x.id,x);});
+    const found=[...dedup.values()]
+      .filter(x=>{
+        if(!x.poster_path||KNOWN.has((x.name||"").toLowerCase())) return false;
+        const ageDays=(now-new Date(x.first_air_date||0).getTime())/86400000;
+        const minVotes=ageDays<=92?25:100; // סדרה טרייה נכנסת כבר עם 25 מצביעים
+        return (x.vote_count||0)>=minVotes;
+      })
+      .sort((a,b)=>estMatch(b)-estMatch(a));
     if(!found.length){document.getElementById('discEmpty').hidden=false;return;}
     const cards=await Promise.all(found.map(async x=>{
       const c={t:x.name,y:(x.first_air_date||"").slice(0,4),m:estMatch(x),tm:x.vote_average?x.vote_average.toFixed(1):null,
