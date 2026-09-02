@@ -247,7 +247,7 @@
           <div id="recResults"></div>
         </div>
         <div class="secttl">סדרות מועדפות</div>
-        <div class="filmgrid" id="recGrid"></div>
+        <div class="castgrid" id="recGrid"></div>
         <div class="secttl">שחקנים מועדפים</div>
         <div class="castgrid" id="favActors"><span class="fbnote">עדיין לא סימנת שחקנים בכוכב</span></div>
       </section>
@@ -860,10 +860,9 @@ function updateRecsCount(){
 function renderRecs(){
   updateRecsCount();
   document.getElementById('recGrid').innerHTML=RECS.length?RECS.map(c=>`
-    <div class="filmtile rclick" data-id="${c.id}">
-      <div class="fph" style="${c.poster?`background-image:url('${c.poster}')`:''}"></div>
-      <div class="fnm"><bdi>${c.t}</bdi> <span style="color:var(--muted);font-weight:400">${c.y}</span></div>
-      <div class="fmt">התאמה: ${c.m} (אומדן)${c.tm?` · TMDB ${c.tm}`:''}</div>
+    <div class="casttile rclick" data-id="${c.id}">
+      <div class="cph" style="${c.poster?`background-image:url('${c.poster}')`:''}"></div>
+      <div class="cnm"><bdi>${c.t}</bdi></div>
     </div>`).join(''):'<span class="fbnote">עדיין לא שמרת סדרות</span>';
   document.querySelectorAll('.rclick').forEach(p=>{p.onclick=()=>openShowCard(+p.dataset.id);});
 }
