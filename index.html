@@ -131,8 +131,7 @@
       <button class="side-btn" data-v="disc" aria-current="false">חדשים</button>
     </nav>
     <main>
-      <section id="view-rank">
-        <div class="filters" role="group" aria-label="סינון לפי פלטפורמה">
+      <div class="filters" id="filterBar" role="group" aria-label="סינון">
           <button class="chip" aria-pressed="true" data-f="all">הכל</button>
           <button class="chip" aria-pressed="false" data-f="netflix">Netflix</button>
           <button class="chip" aria-pressed="false" data-f="disney">Disney+</button>
@@ -153,7 +152,9 @@
           </select>
           <input class="fsel" id="fActor" list="actorList" placeholder="חפש שחקן..." dir="ltr" aria-label="סינון לפי שחקן">
           <datalist id="actorList"></datalist>
+                <span id="originChips"></span>
         </div>
+      <section id="view-rank">
         <p class="count" id="count"></p>
         <div class="grid" id="grid"></div>
       </section>
@@ -211,24 +212,24 @@
 
 <script>
 const shows=[
- {t:"The Glory",m:96,y:2022,tier:1,mdl:"8.9",plat:"Netflix",f:["netflix"],tint:"var(--tint-revenge)",g:"מתח פסיכולוגי · נקמה · דרמה",d:"נקמה מתוכננת 18 שנה בבריוני בית ספר ובכל מי שעמד מנגד. נבלים בלתי נשכחים וסוף שבו כולם משלמים.",like:["As You Stood By","Teach You a Lesson"],mdlU:"https://mydramalist.com/685237-the-glory",imdbU:"https://www.imdb.com/title/tt21344706/"},
- {t:"Beyond Evil",m:94,y:2021,tier:1,mdl:null,plat:"Netflix",f:["netflix"],tint:"var(--tint-psych)",g:"מתח פסיכולוגי · פשע · דרמה",d:"שני שוטרים עם סודות רודפים רוצח מפרשה בת 20 שנה. כמה מותר להפוך למפלצת כדי לתפוס מפלצת. פרס הדרמה של השנה, רגש ומוסר בלי טיפת הגזמה.",like:["As You Stood By","The Scarecrow"],mdlU:"https://mydramalist.com/60911-monster",imdbU:"https://mydramalist.com/60911-monster"},
- {t:"Honour",m:92,y:2026,tier:1,mdl:"7.8",plat:"ENA",f:["other"],tint:"var(--tint-legal)",g:"מתח · מסתורין · משפטי · פשע",d:"שלוש עורכות דין שמייצגות נשים קורבנות פשע, וסוד בן 20 שנה שחוזר. לנקמה אין התיישנות.",like:["Beyond the Bar","As You Stood By"],mdlU:"https://mydramalist.com/788434-honor",imdbU:"https://www.imdb.com/title/tt39301725/"},
- {t:"The Price of Confession",m:91,y:2025,tier:1,mdl:null,plat:"Netflix",f:["netflix"],tint:"var(--tint-revenge)",g:"פשע · מסתורין · מתח · דרמה",d:"שתי נשים בכלא: הודאה כוזבת ברצח תמורת רצח אמיתי. נאמנות, טיוח, וקיר שנסגר.",like:["As You Stood By"],mdlU:"https://mydramalist.com/706581-the-price-of-confession",imdbU:"https://www.imdb.com/title/tt37218592/"},
- {t:"Stranger",m:89,y:"2017, 2 עונות",tier:1,mdl:"8.5 (עונה 2)",plat:"Netflix",f:["netflix"],tint:"var(--tint-legal)",g:"מתח · מסתורין · משפטי",d:"תובע חסר רגשות ובלשית מפרקים שחיתות בתוך הפרקליטות. פסגת המתח המשפטי הקוריאני.",like:["Beyond the Bar"],mdlU:"https://mydramalist.com/21934-stranger",imdbU:"https://www.imdb.com/title/tt6461346/"},
- {t:"Through the Darkness",m:88,y:2022,tier:1,mdl:null,plat:"SBS · זמינות בדף MDL",f:["other"],tint:"var(--tint-crime)",g:"פשע · מתח פסיכולוגי · דרמה",d:"הפרופיילר הראשון של קוריאה, מבוסס על סיפור ורוצחים אמיתיים. מאופק, ממוקד בקורבנות ובאבל. הריאליזם בהתגלמותו.",like:["The Scarecrow"],mdlU:"https://mydramalist.com/699557-inside-criminal-minds",imdbU:"https://mydramalist.com/699557-inside-criminal-minds"},
- {t:"Juvenile Justice",m:87,y:2022,tier:1,mdl:null,plat:"Netflix",f:["netflix"],tint:"var(--tint-legal)",g:"משפטי · פשע · דרמה",d:"שופטת קשוחה בבית משפט לנוער, בין עונש לשיקום. שני שחקנים ראשיים מ-Teach You a Lesson.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/79997-boy-referee",imdbU:"https://www.imdb.com/title/tt15553922/"},
- {t:"My Mister",m:85,y:2018,tier:1,mdl:"8.9",plat:"Netflix",f:["netflix"],tint:"var(--tint-melo)",g:"דרמה פסיכולוגית · חיים · מוסר",d:"מהנדס בגיל העמידה ועובדת צעירה מצילים זה את זה בלי לדעת. בחירות מוסריות, כאב וריפוי. מקום 83 בכל הזמנים. איטית וכבדה, ופסגת הרגש ומוסר ההשכל.",like:["מה שביקשת: רגש ומוסר השכל"],note:"לא סדרת פשע. איטית, כבדה, ושווה את זה",mdlU:"https://mydramalist.com/25172-my-ajusshi",imdbU:"https://www.imdb.com/title/tt7923710/"},
- {t:"Flower of Evil",m:84,y:2020,tier:1,mdl:"9.0",plat:"Netflix · Viki",f:["netflix","viki"],tint:"var(--tint-revenge)",g:"מתח · פשע · מלודרמה",d:"בעל מושלם עם זהות בדויה, ואשתו הבלשית מתקרבת לאמת. מתח טיוח ברמת על, מקום 51 בכל הזמנים.",like:["The Husband","As You Stood By"],mdlU:"https://mydramalist.com/54625-flower-of-evil",imdbU:"https://www.imdb.com/title/tt11691684/"},
- {t:"The Scarecrow",m:83,y:2026,tier:1,mdl:"7.9",plat:"ENA · Viki / Viu",f:["viki","other"],tint:"var(--tint-crime)",g:"פשע · מסתורין · מתח",d:"בלש מודח ותובע יריב רודפים רוצח סדרתי, בהשראת פרשה אמיתית. המדוברת של השנה.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/786738-scarecrow",imdbU:"https://www.imdb.com/title/tt39245629/"},
- {t:"Doubt",m:80,y:2024,tier:2,mdl:null,plat:"MBC (זמינות בדף MDL)",f:["other"],tint:"var(--tint-psych)",g:"מתח פסיכולוגי · פשע",d:"פרופיילר אגדי מגלה שהבת שלו מעורבת ברצח שהוא חוקר.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/759853-the-intimate-traitor",imdbU:"https://www.imdb.com/title/tt30324574/"},
- {t:"Nine Puzzles",m:78,y:2025,tier:2,mdl:"8.4",plat:"Disney+ / Hulu",f:["disney"],tint:"var(--tint-crime)",g:"מתח · מסתורין · פשע",d:"פרופיילרית וסדרת רציחות עם חתיכות פאזל, לצד הבלש שחשד בה בעבר.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/752975-nine-puzzle",imdbU:"https://www.imdb.com/title/tt29927351/"},
- {t:"Wonderful World",m:76,y:2024,tier:2,mdl:null,plat:"Disney+",f:["disney"],tint:"var(--tint-revenge)",g:"נקמה · מתח · מסתורין",d:"אמא שהורגת בעצמה את האחראי למות בנה אחרי שהמערכת נכשלה.",like:["As You Stood By"],mdlU:"https://mydramalist.com/749439-wonderful-world/",imdbU:"https://www.imdb.com/title/tt31187621/"},
- {t:"My Name",m:74,y:2021,tier:2,mdl:"8.0",plat:"Netflix",f:["netflix"],tint:"var(--tint-noir)",g:"אקשן · פשע · נקמה · נואר",d:"בת של מבריח שנרצח מוחדרת למשטרה כסוכנת כפולה כדי למצוא את הרוצח. כוריאוגרפיית קרבות מהטובות שנעשו. עם Park Hee-soon מ-The Judge Returns.",like:["Teach You a Lesson"],mdlU:"https://mydramalist.com/687975-undercover",imdbU:"https://www.imdb.com/title/tt12940504/"},
- {t:"Pyramid Game",m:72,y:2024,tier:1,mdl:"8.5",plat:"TVING · Viu · Paramount+",f:["viki","other"],tint:"var(--tint-game)",g:"מתח פסיכולוגי · הישרדות · מסתורין",d:"משחק דירוג כיתתי שהופך בנות למטרות בריונות. החדשה בתחתית הפירמידה מפרקת את המשחק, והנבלית משלמת.",like:["Squid Game","The Glory"],mdlU:"https://mydramalist.com/749923-pyramid-game",imdbU:"https://mydramalist.com/749923-pyramid-game"},
- {t:"Your Honor",m:70,y:2024,tier:2,mdl:"7.8",plat:"ENA · Viki",f:["viki","other"],tint:"var(--tint-legal)",g:"מתח · משפטי · פשע",d:"שופט שמטייח את פשע בנו מול אב ראש ארגון פשע. מבוסס על \"כבודו\" הישראלית.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/726979-your-honor",imdbU:"https://www.imdb.com/title/tt33092060/"},
- {t:"The Whirlwind",m:66,y:2024,tier:3,mdl:"8.0",plat:"Netflix",f:["netflix"],tint:"var(--tint-legal)",g:"פוליטי · מתח",d:"ראש ממשלה שמתכנן להתנקש בנשיא המושחת בשם הצדק. פוליטי יותר ממשפטי.",like:["Beyond the Bar"],mdlU:"https://mydramalist.com/737003-whirlwind",imdbU:"https://www.imdb.com/title/tt27368132/"},
- {t:"Dear X",m:62,y:2025,tier:3,mdl:null,plat:"TVING · Viki",f:["viki","other"],tint:"var(--tint-psych)",g:"מלודרמה · מתח · פשע",d:"שחקנית צמרת שמתמרנת את כולם ומסתירה אישיות מפחידה.",like:["Teach You a Lesson"],note:"החצי השני חלש מהפתיחה",mdlU:"https://mydramalist.com/688265-dear-x",imdbU:"https://www.imdb.com/title/tt37890201/"}
+ {t:"The Glory",m:96,o:"KR",y:2022,tier:1,mdl:"8.9",plat:"Netflix",f:["netflix"],tint:"var(--tint-revenge)",g:"מתח פסיכולוגי · נקמה · דרמה",d:"נקמה מתוכננת 18 שנה בבריוני בית ספר ובכל מי שעמד מנגד. נבלים בלתי נשכחים וסוף שבו כולם משלמים.",like:["As You Stood By","Teach You a Lesson"],mdlU:"https://mydramalist.com/685237-the-glory",imdbU:"https://www.imdb.com/title/tt21344706/"},
+ {t:"Beyond Evil",m:94,o:"KR",y:2021,tier:1,mdl:null,plat:"Netflix",f:["netflix"],tint:"var(--tint-psych)",g:"מתח פסיכולוגי · פשע · דרמה",d:"שני שוטרים עם סודות רודפים רוצח מפרשה בת 20 שנה. כמה מותר להפוך למפלצת כדי לתפוס מפלצת. פרס הדרמה של השנה, רגש ומוסר בלי טיפת הגזמה.",like:["As You Stood By","The Scarecrow"],mdlU:"https://mydramalist.com/60911-monster",imdbU:"https://mydramalist.com/60911-monster"},
+ {t:"Honour",m:92,o:"KR",y:2026,tier:1,mdl:"7.8",plat:"ENA",f:["other"],tint:"var(--tint-legal)",g:"מתח · מסתורין · משפטי · פשע",d:"שלוש עורכות דין שמייצגות נשים קורבנות פשע, וסוד בן 20 שנה שחוזר. לנקמה אין התיישנות.",like:["Beyond the Bar","As You Stood By"],mdlU:"https://mydramalist.com/788434-honor",imdbU:"https://www.imdb.com/title/tt39301725/"},
+ {t:"The Price of Confession",m:91,o:"KR",y:2025,tier:1,mdl:null,plat:"Netflix",f:["netflix"],tint:"var(--tint-revenge)",g:"פשע · מסתורין · מתח · דרמה",d:"שתי נשים בכלא: הודאה כוזבת ברצח תמורת רצח אמיתי. נאמנות, טיוח, וקיר שנסגר.",like:["As You Stood By"],mdlU:"https://mydramalist.com/706581-the-price-of-confession",imdbU:"https://www.imdb.com/title/tt37218592/"},
+ {t:"Stranger",m:89,o:"KR",y:"2017, 2 עונות",tier:1,mdl:"8.5 (עונה 2)",plat:"Netflix",f:["netflix"],tint:"var(--tint-legal)",g:"מתח · מסתורין · משפטי",d:"תובע חסר רגשות ובלשית מפרקים שחיתות בתוך הפרקליטות. פסגת המתח המשפטי הקוריאני.",like:["Beyond the Bar"],mdlU:"https://mydramalist.com/21934-stranger",imdbU:"https://www.imdb.com/title/tt6461346/"},
+ {t:"Through the Darkness",m:88,o:"KR",y:2022,tier:1,mdl:null,plat:"SBS · זמינות בדף MDL",f:["other"],tint:"var(--tint-crime)",g:"פשע · מתח פסיכולוגי · דרמה",d:"הפרופיילר הראשון של קוריאה, מבוסס על סיפור ורוצחים אמיתיים. מאופק, ממוקד בקורבנות ובאבל. הריאליזם בהתגלמותו.",like:["The Scarecrow"],mdlU:"https://mydramalist.com/699557-inside-criminal-minds",imdbU:"https://mydramalist.com/699557-inside-criminal-minds"},
+ {t:"Juvenile Justice",m:87,o:"KR",y:2022,tier:1,mdl:null,plat:"Netflix",f:["netflix"],tint:"var(--tint-legal)",g:"משפטי · פשע · דרמה",d:"שופטת קשוחה בבית משפט לנוער, בין עונש לשיקום. שני שחקנים ראשיים מ-Teach You a Lesson.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/79997-boy-referee",imdbU:"https://www.imdb.com/title/tt15553922/"},
+ {t:"My Mister",m:85,o:"KR",y:2018,tier:1,mdl:"8.9",plat:"Netflix",f:["netflix"],tint:"var(--tint-melo)",g:"דרמה פסיכולוגית · חיים · מוסר",d:"מהנדס בגיל העמידה ועובדת צעירה מצילים זה את זה בלי לדעת. בחירות מוסריות, כאב וריפוי. מקום 83 בכל הזמנים. איטית וכבדה, ופסגת הרגש ומוסר ההשכל.",like:["מה שביקשת: רגש ומוסר השכל"],note:"לא סדרת פשע. איטית, כבדה, ושווה את זה",mdlU:"https://mydramalist.com/25172-my-ajusshi",imdbU:"https://www.imdb.com/title/tt7923710/"},
+ {t:"Flower of Evil",m:84,o:"KR",y:2020,tier:1,mdl:"9.0",plat:"Netflix · Viki",f:["netflix","viki"],tint:"var(--tint-revenge)",g:"מתח · פשע · מלודרמה",d:"בעל מושלם עם זהות בדויה, ואשתו הבלשית מתקרבת לאמת. מתח טיוח ברמת על, מקום 51 בכל הזמנים.",like:["The Husband","As You Stood By"],mdlU:"https://mydramalist.com/54625-flower-of-evil",imdbU:"https://www.imdb.com/title/tt11691684/"},
+ {t:"The Scarecrow",m:83,o:"KR",y:2026,tier:1,mdl:"7.9",plat:"ENA · Viki / Viu",f:["viki","other"],tint:"var(--tint-crime)",g:"פשע · מסתורין · מתח",d:"בלש מודח ותובע יריב רודפים רוצח סדרתי, בהשראת פרשה אמיתית. המדוברת של השנה.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/786738-scarecrow",imdbU:"https://www.imdb.com/title/tt39245629/"},
+ {t:"Doubt",m:80,o:"KR",y:2024,tier:2,mdl:null,plat:"MBC (זמינות בדף MDL)",f:["other"],tint:"var(--tint-psych)",g:"מתח פסיכולוגי · פשע",d:"פרופיילר אגדי מגלה שהבת שלו מעורבת ברצח שהוא חוקר.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/759853-the-intimate-traitor",imdbU:"https://www.imdb.com/title/tt30324574/"},
+ {t:"Nine Puzzles",m:78,o:"KR",y:2025,tier:2,mdl:"8.4",plat:"Disney+ / Hulu",f:["disney"],tint:"var(--tint-crime)",g:"מתח · מסתורין · פשע",d:"פרופיילרית וסדרת רציחות עם חתיכות פאזל, לצד הבלש שחשד בה בעבר.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/752975-nine-puzzle",imdbU:"https://www.imdb.com/title/tt29927351/"},
+ {t:"Wonderful World",m:76,o:"KR",y:2024,tier:2,mdl:null,plat:"Disney+",f:["disney"],tint:"var(--tint-revenge)",g:"נקמה · מתח · מסתורין",d:"אמא שהורגת בעצמה את האחראי למות בנה אחרי שהמערכת נכשלה.",like:["As You Stood By"],mdlU:"https://mydramalist.com/749439-wonderful-world/",imdbU:"https://www.imdb.com/title/tt31187621/"},
+ {t:"My Name",m:74,o:"KR",y:2021,tier:2,mdl:"8.0",plat:"Netflix",f:["netflix"],tint:"var(--tint-noir)",g:"אקשן · פשע · נקמה · נואר",d:"בת של מבריח שנרצח מוחדרת למשטרה כסוכנת כפולה כדי למצוא את הרוצח. כוריאוגרפיית קרבות מהטובות שנעשו. עם Park Hee-soon מ-The Judge Returns.",like:["Teach You a Lesson"],mdlU:"https://mydramalist.com/687975-undercover",imdbU:"https://www.imdb.com/title/tt12940504/"},
+ {t:"Pyramid Game",m:72,o:"KR",y:2024,tier:1,mdl:"8.5",plat:"TVING · Viu · Paramount+",f:["viki","other"],tint:"var(--tint-game)",g:"מתח פסיכולוגי · הישרדות · מסתורין",d:"משחק דירוג כיתתי שהופך בנות למטרות בריונות. החדשה בתחתית הפירמידה מפרקת את המשחק, והנבלית משלמת.",like:["Squid Game","The Glory"],mdlU:"https://mydramalist.com/749923-pyramid-game",imdbU:"https://mydramalist.com/749923-pyramid-game"},
+ {t:"Your Honor",m:70,o:"KR",y:2024,tier:2,mdl:"7.8",plat:"ENA · Viki",f:["viki","other"],tint:"var(--tint-legal)",g:"מתח · משפטי · פשע",d:"שופט שמטייח את פשע בנו מול אב ראש ארגון פשע. מבוסס על \"כבודו\" הישראלית.",like:["The Judge Returns"],mdlU:"https://mydramalist.com/726979-your-honor",imdbU:"https://www.imdb.com/title/tt33092060/"},
+ {t:"The Whirlwind",m:66,o:"KR",y:2024,tier:3,mdl:"8.0",plat:"Netflix",f:["netflix"],tint:"var(--tint-legal)",g:"פוליטי · מתח",d:"ראש ממשלה שמתכנן להתנקש בנשיא המושחת בשם הצדק. פוליטי יותר ממשפטי.",like:["Beyond the Bar"],mdlU:"https://mydramalist.com/737003-whirlwind",imdbU:"https://www.imdb.com/title/tt27368132/"},
+ {t:"Dear X",m:62,o:"KR",y:2025,tier:3,mdl:null,plat:"TVING · Viki",f:["viki","other"],tint:"var(--tint-psych)",g:"מלודרמה · מתח · פשע",d:"שחקנית צמרת שמתמרנת את כולם ומסתירה אישיות מפחידה.",like:["Teach You a Lesson"],note:"החצי השני חלש מהפתיחה",mdlU:"https://mydramalist.com/688265-dear-x",imdbU:"https://www.imdb.com/title/tt37890201/"}
 ];
 renumber();
 
@@ -301,6 +302,7 @@ document.querySelectorAll('.side-btn').forEach(btn=>{
     document.querySelectorAll('.side-btn').forEach(b=>b.setAttribute('aria-current','false'));
     btn.setAttribute('aria-current','true');
     const v=btn.dataset.v;
+    document.getElementById('filterBar').hidden=v==='watched';
     document.getElementById('view-rank').hidden=v!=='rank';
     document.getElementById('view-watched').hidden=v!=='watched';
     document.getElementById('view-disc').hidden=v!=='disc';
@@ -308,6 +310,7 @@ document.querySelectorAll('.side-btn').forEach(btn=>{
 });
 
 function passes(s){
+  if(F.origin!=='all'&&(s.o||'')!==F.origin) return false;
   if(F.plat!=='all'){
     if(s.provList&&s.provList.length){
       const j=s.provList.join(' ').toLowerCase();
@@ -369,7 +372,7 @@ function render(filter){
 // ====== העשרה חיה מ-TMDB ======
 const TMDB_KEY="fd37a1230832a8c38f699f082fa16110";
 let currentFilter='all';
-const F={plat:'all',score:0,year:'all',actor:''};
+const F={plat:'all',score:0,year:'all',actor:'',origin:'all'};
 
 async function enrich(s){
   try{
@@ -401,7 +404,7 @@ async function enrich(s){
 async function enrichAll(){
   if(!TMDB_KEY) return;
   await Promise.all(shows.map(enrich));
-  const names=[...new Set(shows.flatMap(s=>s.cast||[]))].sort();
+  const names=[...new Set([...shows.flatMap(s=>s.cast||[]),...DISC.flatMap(c=>c.cast||[])])].sort();
   document.getElementById('actorList').innerHTML=names.map(n=>`<option value="${n.replace(/"/g,'')}">`).join('');
   render(currentFilter);
 }
@@ -413,11 +416,12 @@ document.querySelectorAll('.chip').forEach(btn=>{
     currentFilter=btn.dataset.f;
     F.plat=btn.dataset.f;
     render(currentFilter);
+    renderDisc();
   });
 });
-document.getElementById('fScore').addEventListener('change',e=>{F.score=parseFloat(e.target.value)||0;render(currentFilter);});
-document.getElementById('fYear').addEventListener('change',e=>{F.year=e.target.value;render(currentFilter);});
-document.getElementById('fActor').addEventListener('input',e=>{F.actor=e.target.value.trim();render(currentFilter);});
+document.getElementById('fScore').addEventListener('change',e=>{F.score=parseFloat(e.target.value)||0;render(currentFilter);renderDisc();});
+document.getElementById('fYear').addEventListener('change',e=>{F.year=e.target.value;render(currentFilter);renderDisc();});
+document.getElementById('fActor').addEventListener('input',e=>{F.actor=e.target.value.trim();render(currentFilter);renderDisc();});
 render('all');
 enrichAll();
 
@@ -557,6 +561,16 @@ const KNOWN=new Set([...shows.map(s=>s.t.toLowerCase()),
  "the husband","teach you a lesson","as you stood by","beyond the bar","the judge returns",
  "squid game","alice in borderland","agent kim reactivated"]);
 
+const ORIGIN_HE={KR:"קוריאני",US:"אמריקאי",JP:"יפני",GB:"בריטי",CN:"סיני",TW:"טאיוואני",TH:"תאילנדי",ES:"ספרדי",FR:"צרפתי",DE:"גרמני"};
+let DISC=[];
+function buildOriginChips(){
+  const origins=[...new Set([...shows.filter(s=>!s.moved).map(s=>s.o),...DISC.map(c=>c.o)].filter(Boolean))];
+  if(origins.length<2&&F.origin==='all'){document.getElementById('originChips').innerHTML='';return;}
+  document.getElementById('originChips').innerHTML=origins.map(o=>`<button class="chip ochip" aria-pressed="${F.origin===o}" data-o="${o}">${ORIGIN_HE[o]||o}</button>`).join('');
+  document.querySelectorAll('.ochip').forEach(b=>{
+    b.onclick=()=>{F.origin=(F.origin===b.dataset.o)?'all':b.dataset.o;buildOriginChips();render(currentFilter);renderDisc();};
+  });
+}
 const GENRE_HE={80:"פשע",9648:"מסתורין",18:"דרמה",35:"קומדיה",10765:"מדע בדיוני ופנטזיה",10759:"אקשן והרפתקאות",10768:"מלחמה ופוליטיקה",99:"דוקומנטרי",10764:"ריאליטי",16:"אנימציה"};
 function estMatch(x){
   let m=40;
@@ -574,7 +588,6 @@ function estMatch(x){
 }
 async function discover(){
   if(!TMDB_KEY) return;
-  try{
     const since=new Date(Date.now()-183*24*3600*1000).toISOString().slice(0,10);
     const base=`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&sort_by=popularity.desc&vote_average.gte=7.5&vote_count.gte=100&with_genres=80%7C9648&first_air_date.gte=${since}`;
     const [kr,us]=await Promise.all([
@@ -588,15 +601,18 @@ async function discover(){
     if(!found.length){document.getElementById('discEmpty').hidden=false;return;}
     const cards=await Promise.all(found.map(async x=>{
       const c={t:x.name,y:(x.first_air_date||"").slice(0,4),m:estMatch(x),tm:x.vote_average?x.vote_average.toFixed(1):null,
-        poster:`https://image.tmdb.org/t/p/w500${x.poster_path}`,id:x.id,
+        poster:`https://image.tmdb.org/t/p/w500${x.poster_path}`,id:x.id,f:[],
         g:(x.genre_ids||[]).map(i=>GENRE_HE[i]).filter(Boolean).join(' · ')||'—',
+        o:(x.origin_country||[]).includes('KR')?'KR':((x.origin_country||[])[0]||'US'),
         kr:(x.origin_country||[]).includes('KR')};
       try{
-        const d=await fetch(`https://api.themoviedb.org/3/tv/${x.id}?api_key=${TMDB_KEY}&append_to_response=videos,watch%2Fproviders,external_ids`).then(r=>r.json());
+        const d=await fetch(`https://api.themoviedb.org/3/tv/${x.id}?api_key=${TMDB_KEY}&append_to_response=videos,watch%2Fproviders,external_ids,aggregate_credits`).then(r=>r.json());
         const stMap={"Ended":"הסתיימה","Returning Series":"עדיין משודרת","Canceled":"בוטלה","In Production":"בהפקה"};
         c.st=`${stMap[d.status]||d.status||""}${d.number_of_seasons>1?` · ${d.number_of_seasons} עונות`:""} · ${d.number_of_episodes} פרקים`;
         const th=d["watch/providers"]&&d["watch/providers"].results&&d["watch/providers"].results.TH;
-        c.prov=th&&th.flatrate?[...new Set(th.flatrate.map(p=>p.provider_name))].slice(0,4).join(" · "):null;
+        c.provList=th&&th.flatrate?[...new Set(th.flatrate.map(p=>p.provider_name))]:null;
+        c.prov=c.provList?c.provList.slice(0,4).join(" · "):null;
+        c.cast=((d.aggregate_credits&&d.aggregate_credits.cast)||[]).slice(0,8).map(a=>a.name);
         const vids=(d.videos&&d.videos.results)||[];
         const v=vids.find(o=>o.site==="YouTube"&&o.type==="Trailer")||vids.find(o=>o.site==="YouTube");
         c.yt=v?`https://www.youtube.com/watch?v=${v.key}`:null;
@@ -604,6 +620,14 @@ async function discover(){
       }catch(e){}
       return c;
     }));
+    DISC=cards;
+    buildOriginChips();
+    renderDisc();
+    document.getElementById('discover').hidden=false;
+}
+function renderDisc(){
+    if(!DISC.length) return;
+    const cards=DISC.filter(passes);
     document.getElementById('discGrid').innerHTML=cards.map(c=>`
       <article class="card">
         <div class="poster" style="background:linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${c.poster}') center 20%/cover no-repeat">
@@ -625,15 +649,14 @@ async function discover(){
           </div>
         </div>
       </article>`).join('');
-    document.getElementById('discover').hidden=false;
     document.querySelectorAll('.dseen2').forEach(b=>{
       const n=b.dataset.n.toLowerCase();
       if(FEEDBACK.has(n)){b.textContent='ערוך דירוג';b.classList.add('done');}
       b.onclick=()=>openFeedback(b.dataset.n,+b.dataset.id);
     });
-  }catch(e){/* בלי רשת: האזור פשוט לא מוצג */}
 }
-discover();
+async function discoverSafe(){try{await discover();}catch(e){}}
+discoverSafe();
 loadFeedback();
 </script>
 </body>
