@@ -94,6 +94,24 @@
   .star{background:none;border:0;color:var(--muted);font-size:1.35rem;line-height:1;cursor:pointer;padding:6px;flex-shrink:0;min-height:44px;min-width:36px}
   .star.on{color:#d9a441}
   .star:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .acwrap{position:relative;display:inline-block}
+  #actorSug{position:absolute;top:calc(100% + 6px);right:0;width:290px;max-height:380px;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;z-index:20;box-shadow:0 12px 32px rgba(0,0,0,.5);padding:6px}
+  .srow{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:6px;cursor:pointer}
+  .srow:hover{background:var(--bg)}
+  .srow .sp{width:40px;height:52px;border-radius:4px;background:#22262e center top/cover no-repeat;flex-shrink:0}
+  .srow .sn{direction:ltr;text-align:left;font-size:.92rem;flex:1;min-width:0}
+  .srow .sk{color:var(--muted);font-size:.78rem;direction:ltr;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .achead{display:flex;align-items:center;gap:16px;padding:20px 20px 6px}
+  .achead .app{width:84px;height:112px;border-radius:6px;background:#22262e center top/cover no-repeat;flex-shrink:0}
+  .achead .acn{font-family:'Frank Ruhl Libre',serif;font-weight:600;font-size:1.5rem;direction:ltr;text-align:left}
+  .acshows{display:flex;flex-direction:column;gap:10px;padding:14px 20px 20px}
+  .acrow{display:flex;align-items:center;gap:14px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;cursor:pointer}
+  .acrow:hover{border-color:var(--accent)}
+  .acrow .acp{width:46px;height:66px;border-radius:4px;background:#101218 center/cover no-repeat;flex-shrink:0}
+  .acrow .aci{flex:1;min-width:0}
+  .acrow .act{direction:ltr;text-align:left;font-size:.95rem;font-weight:500}
+  .acrow .acm{font-size:.82rem;color:var(--muted);margin-top:2px}
+  .acrow .tag{font-size:.78rem;color:var(--accent)}
   .fbactions{display:flex;gap:10px;margin-top:20px}
   .fbactions button{flex:1;font-family:inherit;font-size:.95rem;font-weight:500;border-radius:3px;padding:12px 0;cursor:pointer}
   .fbsend{background:var(--accent);color:#fff;border:0}
@@ -168,8 +186,10 @@
             <option value="mid">2023-2024</option>
             <option value="old">עד 2022</option>
           </select>
-          <input class="fsel" id="fActor" list="actorList" placeholder="חפש שחקן..." dir="ltr" aria-label="סינון לפי שחקן">
-          <datalist id="actorList"></datalist>
+          <span class="acwrap">
+            <input class="fsel" id="fActor" placeholder="חפש שחקן..." dir="ltr" aria-label="חיפוש שחקן" autocomplete="off">
+            <div id="actorSug" hidden></div>
+          </span>
                 <span id="originChips"></span>
         </div>
       <section id="view-rank">
@@ -440,8 +460,6 @@ async function enrich(s){
 async function enrichAll(){
   if(!TMDB_KEY) return;
   await Promise.all(shows.map(enrich));
-  const names=favSort([...new Set([...shows.flatMap(s=>s.cast||[]),...DISC.flatMap(c=>c.cast||[])])].sort());
-  document.getElementById('actorList').innerHTML=names.map(n=>`<option value="${n.replace(/"/g,'')}">`).join('');
   render(currentFilter);
 }
 
@@ -801,6 +819,85 @@ function openDetail(c){
     catch(e){mn.textContent='שגיאה, נסה שוב';mn.disabled=false;}};
 }
 document.getElementById('dtOverlay').addEventListener('click',e=>{if(e.target.id==='dtOverlay')document.getElementById('dtOverlay').classList.remove('open');});
+
+// ====== חיפוש שחקן: הצעות עם תמונות + כרטיס שחקן ======
+let actTimer=null;
+const fActorEl=document.getElementById('fActor');
+fActorEl.addEventListener('input',e=>{
+  F.actor=e.target.value.trim(); render(currentFilter); renderDisc();
+  clearTimeout(actTimer);
+  const q=F.actor;
+  if(q.length<2){document.getElementById('actorSug').hidden=true;return;}
+  actTimer=setTimeout(async ()=>{
+    try{
+      const r=await fetch(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}`).then(x=>x.json());
+      const res=(r.results||[]).filter(p=>p.profile_path).sort((a,b)=>(isFav(b.name)?1e9:b.popularity||0)-(isFav(a.name)?1e9:a.popularity||0)).slice(0,8);
+      if(!res.length){document.getElementById('actorSug').hidden=true;return;}
+      document.getElementById('actorSug').innerHTML=res.map(p=>`
+        <div class="srow" data-id="${p.id}" data-n="${(p.name||'').replace(/"/g,'&quot;')}">
+          <div class="sp" style="background-image:url('https://image.tmdb.org/t/p/w185${p.profile_path}')"></div>
+          <div class="sn">${isFav(p.name)?'★ ':''}<bdi>${p.name}</bdi>
+            <div class="sk">${(p.known_for||[]).map(k=>k.name||k.title).filter(Boolean).slice(0,2).join(' · ')}</div>
+          </div>
+        </div>`).join('');
+      document.getElementById('actorSug').hidden=false;
+      document.querySelectorAll('.srow').forEach(el=>{
+        el.onclick=()=>{document.getElementById('actorSug').hidden=true;openActorCard(+el.dataset.id,el.dataset.n);};
+      });
+    }catch(e){}
+  },300);
+});
+document.addEventListener('click',e=>{if(!e.target.closest||!e.target.closest('.acwrap'))document.getElementById('actorSug').hidden=true;});
+
+async function openActorCard(pid,name){
+  const el=document.getElementById('dtModal');
+  el.innerHTML='<div class="dtb"><span class="fbnote">טוען כרטיס שחקן...</span></div>';
+  document.getElementById('dtOverlay').classList.add('open');
+  try{
+    const p=await fetch(`https://api.themoviedb.org/3/person/${pid}?api_key=${TMDB_KEY}&append_to_response=tv_credits`).then(r=>r.json());
+    const seen=new Set([...WATCHED.map(w=>w.t.toLowerCase())]);
+    const inRank=new Set(shows.filter(s=>!s.moved).map(s=>s.t.toLowerCase()));
+    const credits=[...new Map(((p.tv_credits&&p.tv_credits.cast)||[]).filter(c=>c.poster_path).map(c=>[c.id,c])).values()]
+      .sort((a,b)=>(b.vote_count||0)-(a.vote_count||0)).slice(0,10);
+    el.innerHTML=`
+      <div class="achead">
+        <div class="app" style="${p.profile_path?`background-image:url('https://image.tmdb.org/t/p/w185${p.profile_path}')`:''}"></div>
+        <div>
+          <div class="acn"><bdi>${p.name}</bdi></div>
+          <button class="star ${isFav(p.name)?'on':''}" id="acStar" title="שחקן מועדף">★ <span style="font-size:.85rem;font-family:Heebo">${isFav(p.name)?'מועדף':'סמן כמועדף'}</span></button>
+        </div>
+      </div>
+      <div class="acshows">
+        ${credits.map(c=>`
+          <div class="acrow" data-i="${c.id}">
+            <div class="acp" style="background-image:url('https://image.tmdb.org/t/p/w92${c.poster_path}')"></div>
+            <div class="aci">
+              <div class="act"><bdi>${c.name}</bdi> <span style="color:var(--muted);font-weight:400">${(c.first_air_date||'').slice(0,4)}</span></div>
+              <div class="acm">התאמה: ${estMatch(c)} (אומדן) · TMDB ${c.vote_average?c.vote_average.toFixed(1):'—'}${c.character?` · <bdi>${c.character}</bdi>`:''}
+                ${inRank.has((c.name||'').toLowerCase())?'<span class="tag"> · בדירוג שלך</span>':''}${seen.has((c.name||'').toLowerCase())?'<span class="tag"> · ראית</span>':''}
+              </div>
+            </div>
+          </div>`).join('')||'<span class="fbnote">לא נמצאו סדרות</span>'}
+      </div>
+      <div class="dtb" style="padding-top:0">
+        <div class="fbactions">
+          <button class="fbcancel" id="acFilter">סנן את הרשימות לפי השחקן</button>
+          <button class="fbcancel" id="acClose">סגור</button>
+        </div>
+      </div>`;
+    document.getElementById('acClose').onclick=()=>document.getElementById('dtOverlay').classList.remove('open');
+    document.getElementById('acFilter').onclick=()=>{fActorEl.value=p.name;F.actor=p.name;render(currentFilter);renderDisc();document.getElementById('dtOverlay').classList.remove('open');};
+    const st=document.getElementById('acStar');
+    st.onclick=()=>toggleFav(p.name,st);
+    const byId=Object.fromEntries(credits.map(c=>[c.id,c]));
+    el.querySelectorAll('.acrow').forEach(row=>{
+      row.onclick=async ()=>{
+        const full=await buildFull(byId[+row.dataset.i]);
+        if(full) openDetail(full);
+      };
+    });
+  }catch(e){el.innerHTML='<div class="dtb"><span class="fbnote">שגיאה בטעינת השחקן</span></div>';}
+}
 
 // חיפוש גלובלי בתצוגת ההמלצות
 let recTimer=null;
