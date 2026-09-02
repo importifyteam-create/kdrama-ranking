@@ -91,6 +91,9 @@
   .actorrow .an{direction:ltr;text-align:left;font-size:.92rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .actorrow .ac{direction:ltr;text-align:left;font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #fbModal .actorrow select{width:132px;flex-shrink:0}
+  .star{background:none;border:0;color:var(--muted);font-size:1.35rem;line-height:1;cursor:pointer;padding:6px;flex-shrink:0;min-height:44px;min-width:36px}
+  .star.on{color:#d9a441}
+  .star:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .fbactions{display:flex;gap:10px;margin-top:20px}
   .fbactions button{flex:1;font-family:inherit;font-size:.95rem;font-weight:500;border-radius:3px;padding:12px 0;cursor:pointer}
   .fbsend{background:var(--accent);color:#fff;border:0}
@@ -437,7 +440,7 @@ async function enrich(s){
 async function enrichAll(){
   if(!TMDB_KEY) return;
   await Promise.all(shows.map(enrich));
-  const names=[...new Set([...shows.flatMap(s=>s.cast||[]),...DISC.flatMap(c=>c.cast||[])])].sort();
+  const names=favSort([...new Set([...shows.flatMap(s=>s.cast||[]),...DISC.flatMap(c=>c.cast||[])])].sort());
   document.getElementById('actorList').innerHTML=names.map(n=>`<option value="${n.replace(/"/g,'')}">`).join('');
   render(currentFilter);
 }
@@ -477,6 +480,10 @@ async function loadFeedback(){
   try{
     const iss=await fetch(`https://api.github.com/repos/${REPO}/issues?state=all&per_page=100`).then(r=>r.json());
     (Array.isArray(iss)?iss:[]).forEach(i=>{
+      const favA=/^פידבק: שחקן: (.+)$/.exec(i.title||"");
+      const unfavA=/^פידבק: שחקן-הסר: (.+)$/.exec(i.title||"");
+      if(favA){if(!FAVA.has(favA[1].trim()))FAVA.set(favA[1].trim(),true);return;}
+      if(unfavA){if(!FAVA.has(unfavA[1].trim()))FAVA.set(unfavA[1].trim(),false);return;}
       const rec=/^פידבק: המלצה: (.+)$/.exec(i.title||"");
       const toMain=/^פידבק: לדירוג: (.+)$/.exec(i.title||"");
       if(rec){RECS_T.add(rec[1].trim());return;}
@@ -564,6 +571,7 @@ async function openFeedback(title,tmdbId){
       cast=(c.cast||[]).slice(0,5);
     }catch(e){}
   }
+  cast=favSort(cast.map(a=>a)).sort((a,b)=>(isFav(b.name)?1:0)-(isFav(a.name)?1:0));
   box.innerHTML=cast.length?cast.map(a=>{
     const role=(a.roles&&a.roles[0]&&a.roles[0].character)||'';
     const photo=a.profile_path?`style="background-image:url('https://image.tmdb.org/t/p/w185${a.profile_path}')"`:'';
@@ -574,6 +582,7 @@ async function openFeedback(title,tmdbId){
         <div class="an"><bdi>${a.name}</bdi></div>
         ${role?`<div class="ac"><bdi>${role}</bdi></div>`:''}
       </div>
+      <button class="star ${isFav(a.name)?'on':''}" data-a="${a.name.replace(/"/g,'')}" title="סמן כשחקן מועדף" aria-label="שחקן מועדף">★</button>
       <select data-actor="${a.name.replace(/"/g,'')}">
         <option value="">לא דירגתי</option>
         <option value="אהבתי מאוד">אהבתי מאוד</option>
@@ -584,6 +593,7 @@ async function openFeedback(title,tmdbId){
   if(prev&&prev.actors){
     box.querySelectorAll('select').forEach(s=>{if(prev.actors[s.dataset.actor])s.value=prev.actors[s.dataset.actor];});
   }
+  box.querySelectorAll('.star').forEach(b=>{b.onclick=()=>toggleFav(b.dataset.a,b);});
 }
 
 document.getElementById('fbCancel').onclick=()=>document.getElementById('fbOverlay').classList.remove('open');
@@ -652,6 +662,14 @@ function buildOriginChips(){
   document.querySelectorAll('.ochip').forEach(b=>{
     b.onclick=()=>{F.origin=(F.origin===b.dataset.o)?'all':b.dataset.o;buildOriginChips();render(currentFilter);renderDisc();};
   });
+}
+const FAVA=new Map(); // שחקן -> favorite (החלטה אחרונה קובעת)
+function isFav(n){return FAVA.get(n)===true;}
+function favSort(names){return [...names].sort((a,b)=>(isFav(b)?1:0)-(isFav(a)?1:0));}
+async function toggleFav(name,btn){
+  const now=!isFav(name);
+  btn.classList.toggle('on',now); FAVA.set(name,now);
+  try{await sendListAction(now?'שחקן':'שחקן-הסר',name);}catch(e){btn.classList.toggle('on',!now);FAVA.set(name,!now);}
 }
 const RECS_T=new Set(); // כותרים ברשימת ההמלצות (מה-Issues)
 const MAIN_T=new Set(); // כותרים שצורפו ידנית לדירוג הראשי
@@ -758,7 +776,7 @@ function openDetail(c){
       </div>
       <p class="genres">${c.g}${c.st?` · ${c.st}`:''}</p>
       <p class="genres">${c.prov?`זמין בתאילנד: ${c.prov}`:'אין סטרימינג בתאילנד כרגע'}</p>
-      ${c.cast&&c.cast.length?`<p class="dtcast">${c.cast.slice(0,5).join(' · ')}</p>`:''}
+      ${c.cast&&c.cast.length?`<p class="dtcast">${favSort(c.cast).slice(0,5).map(n=>(isFav(n)?'★ ':'')+n).join(' · ')}</p>`:''}
       <div class="links">
         <a href="https://www.themoviedb.org/tv/${c.id}" target="_blank" rel="noopener">TMDB</a>
         ${c.imdbU?`<a href="${c.imdbU}" target="_blank" rel="noopener">IMDb</a>`:''}
