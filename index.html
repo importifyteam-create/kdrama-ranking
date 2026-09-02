@@ -190,6 +190,10 @@
             <input class="fsel" id="fActor" placeholder="חפש שחקן..." dir="ltr" aria-label="חיפוש שחקן" autocomplete="off">
             <div id="actorSug" hidden></div>
           </span>
+          <span class="acwrap">
+            <input class="fsel" id="fShow" placeholder="חפש סדרה..." dir="ltr" aria-label="חיפוש סדרה" autocomplete="off">
+            <div id="showSug" hidden></div>
+          </span>
                 <span id="originChips"></span>
         </div>
       <section id="view-rank">
@@ -716,7 +720,9 @@ async function buildFull(x){
     const v=vids.find(o=>o.site==="YouTube"&&o.type==="Trailer")||vids.find(o=>o.site==="YouTube");
     c.yt=v?`https://www.youtube.com/watch?v=${v.key}`:null;
     c.imdbU=d.external_ids&&d.external_ids.imdb_id?`https://www.imdb.com/title/${d.external_ids.imdb_id}/`:null;
-    c.cast=((d.aggregate_credits&&d.aggregate_credits.cast)||[]).slice(0,8).map(a=>a.name);
+    const fullCast=((d.aggregate_credits&&d.aggregate_credits.cast)||[]).slice(0,12);
+    c.cast=fullCast.map(a=>a.name);
+    c.castFull=fullCast.map(a=>({id:a.id,name:a.name,p:a.profile_path,role:(a.roles&&a.roles[0]&&a.roles[0].character)||''}));
   }catch(e){}
   return c;
 }
@@ -794,7 +800,15 @@ function openDetail(c){
       </div>
       <p class="genres">${c.g}${c.st?` · ${c.st}`:''}</p>
       <p class="genres">${c.prov?`זמין בתאילנד: ${c.prov}`:'אין סטרימינג בתאילנד כרגע'}</p>
-      ${c.cast&&c.cast.length?`<p class="dtcast">${favSort(c.cast).slice(0,5).map(n=>(isFav(n)?'★ ':'')+n).join(' · ')}</p>`:''}
+      ${c.castFull&&c.castFull.length?`<div id="dtCast">${c.castFull.map(a=>`
+        <div class="actorrow">
+          <div class="ap" ${a.p?`style="background-image:url('https://image.tmdb.org/t/p/w185${a.p}')"`:''}>${a.p?'':'?'}</div>
+          <div class="ainfo dtActor" data-pid="${a.id}" data-n="${a.name.replace(/"/g,'&quot;')}" style="cursor:pointer">
+            <div class="an">${isFav(a.name)?'★ ':''}<bdi>${a.name}</bdi></div>
+            ${a.role?`<div class="ac"><bdi>${a.role}</bdi></div>`:''}
+          </div>
+          <button class="star ${isFav(a.name)?'on':''}" data-a="${a.name.replace(/"/g,'')}" title="שחקן מועדף">★</button>
+        </div>`).join('')}</div>`:''}
       <div class="links">
         <a href="https://www.themoviedb.org/tv/${c.id}" target="_blank" rel="noopener">TMDB</a>
         ${c.imdbU?`<a href="${c.imdbU}" target="_blank" rel="noopener">IMDb</a>`:''}
@@ -809,6 +823,8 @@ function openDetail(c){
     </div>`;
   document.getElementById('dtOverlay').classList.add('open');
   document.getElementById('dtClose').onclick=()=>document.getElementById('dtOverlay').classList.remove('open');
+  el.querySelectorAll('#dtCast .star').forEach(b=>{b.onclick=()=>toggleFav(b.dataset.a,b);});
+  el.querySelectorAll('.dtActor').forEach(a=>{a.onclick=()=>openActorCard(+a.dataset.pid,a.dataset.n);});
   const rec=document.getElementById('dtRec');
   if(rec&&!rec.disabled) rec.onclick=async ()=>{rec.disabled=true;rec.textContent='שומר...';
     try{await sendListAction('המלצה',c.t);RECS.push(c);KNOWN.add(c.t.toLowerCase());renderRecs();rec.textContent='נשמר ✓';}
@@ -899,34 +915,39 @@ async function openActorCard(pid,name){
   }catch(e){el.innerHTML='<div class="dtb"><span class="fbnote">שגיאה בטעינת השחקן</span></div>';}
 }
 
-// חיפוש גלובלי בתצוגת ההמלצות
-let recTimer=null;
-document.getElementById('recSearch').addEventListener('input',e=>{
-  clearTimeout(recTimer);
-  const q=e.target.value.trim();
-  if(q.length<2){document.getElementById('recResults').innerHTML='';return;}
-  recTimer=setTimeout(async ()=>{
-    try{
-      const r=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}`).then(x=>x.json());
-      const res=(r.results||[]).sort((a,b)=>((b.origin_country||[]).includes('KR')?1:0)-((a.origin_country||[]).includes('KR')?1:0)).slice(0,10);
-      document.getElementById('recResults').innerHTML=res.map(x=>`
-        <div class="arow recrow" data-id="${x.id}">
-          <div class="arp" style="${x.poster_path?`background-image:url('https://image.tmdb.org/t/p/w92${x.poster_path}')`:''}"></div>
-          <span class="arn"><bdi>${x.name}</bdi></span>
-          <span class="ary">${(x.first_air_date||'').slice(0,4)} · ${ORIGIN_HE[(x.origin_country||[])[0]]||(x.origin_country||[])[0]||''}</span>
-        </div>`).join('');
-      const byId=Object.fromEntries(res.map(x=>[x.id,x]));
-      document.querySelectorAll('.recrow').forEach(el=>{
-        el.onclick=async ()=>{
-          document.getElementById('recResults').innerHTML='';
-          document.getElementById('recSearch').value='';
-          const full=await buildFull(byId[+el.dataset.id]);
-          if(full) openDetail(full);
-        };
-      });
-    }catch(e){}
-  },350);
-});
+// חיפוש סדרות משותף: בסרגל הפילטרים ובתצוגת ההמלצות
+function bindShowSearch(inputId,panelId){
+  let t=null;
+  const inp=document.getElementById(inputId), panel=document.getElementById(panelId);
+  inp.addEventListener('input',e=>{
+    clearTimeout(t);
+    const q=e.target.value.trim();
+    if(q.length<2){panel.innerHTML='';panel.hidden=true;return;}
+    t=setTimeout(async ()=>{
+      try{
+        const r=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}`).then(x=>x.json());
+        const res=(r.results||[]).sort((a,b)=>((b.origin_country||[]).includes('KR')?1:0)-((a.origin_country||[]).includes('KR')?1:0)).slice(0,10);
+        panel.innerHTML=res.map(x=>`
+          <div class="arow srch-${inputId}" data-id="${x.id}">
+            <div class="arp" style="${x.poster_path?`background-image:url('https://image.tmdb.org/t/p/w92${x.poster_path}')`:''}"></div>
+            <span class="arn"><bdi>${x.name}</bdi></span>
+            <span class="ary">${(x.first_air_date||'').slice(0,4)} · ${ORIGIN_HE[(x.origin_country||[])[0]]||(x.origin_country||[])[0]||''}</span>
+          </div>`).join('');
+        panel.hidden=!res.length;
+        const byId=Object.fromEntries(res.map(x=>[x.id,x]));
+        panel.querySelectorAll('.srch-'+inputId).forEach(el=>{
+          el.onclick=async ()=>{
+            panel.innerHTML='';panel.hidden=true;inp.value='';
+            const full=await buildFull(byId[+el.dataset.id]);
+            if(full) openDetail(full);
+          };
+        });
+      }catch(e){}
+    },350);
+  });
+}
+bindShowSearch('fShow','showSug');
+bindShowSearch('recSearch','recResults');
 
 const GENRE_HE={80:"פשע",9648:"מסתורין",18:"דרמה",35:"קומדיה",10765:"מדע בדיוני ופנטזיה",10759:"אקשן והרפתקאות",10768:"מלחמה ופוליטיקה",99:"דוקומנטרי",10764:"ריאליטי",16:"אנימציה"};
 function estMatch(x){
