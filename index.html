@@ -419,7 +419,7 @@ function applyLang(){
   document.title=LANG==='en'?'KRDB · Korean drama ranking':'KRDB · דרמות קוריאניות';
   const b=document.getElementById('langBtn'); if(b) b.textContent=LANG==='en'?'עברית':'English';
   translateAll(LANG);
-  if(typeof renderTaste==='function'){renderTaste();renderTagProfile();}
+  try{ if(typeof TASTE!=='undefined'){renderTaste();renderTagProfile();} }catch(e){}
   if(b) b.textContent=LANG==='en'?'עברית':'English';
 }
 document.getElementById('langBtn').addEventListener('click',()=>{
@@ -630,7 +630,6 @@ document.getElementById('fYear').addEventListener('change',e=>{F.year=e.target.v
 document.getElementById('fActor').addEventListener('input',e=>{F.actor=e.target.value.trim();render(currentFilter);renderDisc();});
 render('all');
 enrichAll();
-applyLang();
 
 // ====== מעגל פידבק דרך GitHub Issues ======
 // פידבק בסיס מהראיונות בצ'אט (31.08.26): משמש למילוי מראש של הטופס.
@@ -1348,6 +1347,7 @@ function bindShowSearch(inputId,panelId){
 }
 bindShowSearch('fShow','showSug');
 bindShowSearch('recSearch','recResults');
+applyLang();
 
 const GENRE_HE={80:"פשע",9648:"מסתורין",18:"דרמה",35:"קומדיה",10765:"מדע בדיוני ופנטזיה",10759:"אקשן והרפתקאות",10768:"מלחמה ופוליטיקה",99:"דוקומנטרי",10764:"ריאליטי",16:"אנימציה"};
 function estMatch(x){
