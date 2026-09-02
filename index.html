@@ -391,6 +391,7 @@
 </div>
 
 <script>
+window.addEventListener('error',e=>{try{const d=document.getElementById('dataLine');if(d)d.textContent='שגיאת דף: '+e.message;}catch(_){}});
 const shows=[
  {t:"The Glory",m:96,o:"KR",y:2022,tier:1,mdl:"8.9",plat:"Netflix",f:["netflix"],tint:"var(--tint-revenge)",g:"מתח פסיכולוגי · נקמה · דרמה",d:"נקמה מתוכננת 18 שנה בבריוני בית ספר ובכל מי שעמד מנגד. נבלים בלתי נשכחים וסוף שבו כולם משלמים.",like:["As You Stood By","Teach You a Lesson"],mdlU:"https://mydramalist.com/685237-the-glory",imdbU:"https://www.imdb.com/title/tt21344706/"},
  {t:"Beyond Evil",m:94,o:"KR",y:2021,tier:1,mdl:null,plat:"Netflix",f:["netflix"],tint:"var(--tint-psych)",g:"מתח פסיכולוגי · פשע · דרמה",d:"שני שוטרים עם סודות רודפים רוצח מפרשה בת 20 שנה. כמה מותר להפוך למפלצת כדי לתפוס מפלצת. פרס הדרמה של השנה, רגש ומוסר בלי טיפת הגזמה.",like:["As You Stood By","The Scarecrow"],mdlU:"https://mydramalist.com/60911-monster",imdbU:"https://mydramalist.com/60911-monster"},
@@ -848,10 +849,6 @@ async function openFeedback(title,tmdbId){
   box.querySelectorAll('.star').forEach(b=>{b.onclick=()=>toggleFav(b.dataset.a,b);});
 }
 
-document.getElementById('fbMoreBtn').onclick=()=>{
-  const m=document.getElementById('fbMore'); m.hidden=!m.hidden;
-  document.getElementById('fbMoreBtn').textContent=m.hidden?'עוד פרטים (לא חובה)':'הסתר פרטים';
-};
 document.getElementById('fbCancel').onclick=()=>document.getElementById('fbOverlay').classList.remove('open');
 document.getElementById('fbOverlay').addEventListener('click',e=>{if(e.target.id==='fbOverlay')document.getElementById('fbOverlay').classList.remove('open');});
 const WORKER_URL="https://kdrama-feedback.vaintrov.workers.dev";
@@ -990,7 +987,7 @@ function applyTasteFromIssue(body){
     const f=TASTE.find(x=>x.k===k); if(f&&v) f.v=v;
   });
   renderTaste();
-renderGenres();
+}
 (function(){const b=document.getElementById('genreSave'); if(b) b.onclick=saveGenres;})();
 (function(){const b=document.getElementById('dataRefresh'); if(b) b.onclick=async ()=>{
   b.disabled=true; b.textContent='מרענן...';
@@ -1000,7 +997,7 @@ renderGenres();
   await loadFeedback();
   b.textContent='רועננו'; setTimeout(()=>{b.textContent='רענן נתונים מהשרת';b.disabled=false;},1500);
 };})();
-}
+renderGenres();
 document.getElementById('tasteSave').onclick=async ()=>{
   const btn=document.getElementById('tasteSave');
   TASTE.forEach((f,i)=>{const el=document.getElementById('ts'+i); if(el&&el.value!==((LANG==='en'&&f.ven&&!f.edited)?f.ven:f.v)){f.v=el.value;f.edited=true;}});
