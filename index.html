@@ -493,12 +493,14 @@ document.getElementById('addSearch').addEventListener('input',e=>{
   addTimer=setTimeout(async ()=>{
     try{
       const r=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}`).then(x=>x.json());
-      const res=(r.results||[]).slice(0,6);
+      const res=(r.results||[])
+        .sort((a,b)=>((b.origin_country||[]).includes('KR')?1:0)-((a.origin_country||[]).includes('KR')?1:0))
+        .slice(0,10);
       document.getElementById('addResults').innerHTML=res.map(x=>`
         <div class="arow" data-n="${(x.name||'').replace(/"/g,'&quot;')}" data-id="${x.id}" data-y="${(x.first_air_date||'').slice(0,4)}" data-p="${x.poster_path||''}">
           <div class="arp" style="${x.poster_path?`background-image:url('https://image.tmdb.org/t/p/w92${x.poster_path}')`:''}"></div>
           <span class="arn"><bdi>${x.name}</bdi></span>
-          <span class="ary">${(x.first_air_date||'').slice(0,4)}</span>
+          <span class="ary">${(x.first_air_date||'').slice(0,4)} · ${ORIGIN_HE[(x.origin_country||[])[0]]||(x.origin_country||[])[0]||''}</span>
         </div>`).join('');
       document.querySelectorAll('.arow').forEach(el=>{
         el.onclick=()=>{
