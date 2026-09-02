@@ -34,7 +34,7 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:18px;margin-top:22px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;display:flex;flex-direction:column}
   .card.top{border-color:var(--accent)}
-  .poster{position:relative;height:150px;display:flex;align-items:flex-end;padding:16px;overflow:hidden}
+  .poster{position:relative;height:150px;display:flex;align-items:flex-end;padding:16px;overflow:hidden;cursor:pointer}
   .poster .rank{position:absolute;top:-20px;left:6px;font-family:'Frank Ruhl Libre',serif;font-weight:800;font-size:6.6rem;line-height:1;color:rgba(255,255,255,.1);user-select:none;text-shadow:0 0 12px rgba(0,0,0,.6)}
   .poster .ttl{font-family:'Frank Ruhl Libre',serif;font-weight:600;font-size:1.42rem;line-height:1.2;direction:ltr;text-align:left;text-shadow:0 1px 8px rgba(0,0,0,.8)}
   .poster .yr{color:rgba(255,255,255,.65);font-size:.92rem;margin-left:8px;font-weight:400}
@@ -127,7 +127,7 @@
   .wgrid{display:flex;flex-direction:column;gap:12px;margin-top:24px}
   .wcard{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px 16px}
   .wcard .wp{width:64px;height:90px;border-radius:3px;background:#101218 center/cover no-repeat;flex-shrink:0}
-  .wcard .wi{flex:1;min-width:0}
+  .wcard .wi{flex:1;min-width:0;cursor:pointer}
   .wcard .wn{direction:ltr;text-align:left;font-family:'Frank Ruhl Libre',serif;font-weight:600;font-size:1.05rem}
   .wcard .wr{font-size:.9rem;margin-top:2px}
   .wcard .wr b{color:var(--fg)}
@@ -323,14 +323,18 @@ function renderWatched(){
     const changed=fb&&eff!==w.rating&&!w.pending;
     return `
     <div class="wcard">
-      <div class="wp" style="${w.poster?`background-image:url('${w.poster}')`:''}"></div>
-      <div class="wi">
+      <div class="wp wclick" data-wi2="${i}" style="${w.poster?`background-image:url('${w.poster}')`:''}"></div>
+      <div class="wi wclick" data-wi2="${i}">
         <div class="wn"><bdi>${w.t}</bdi> <span style="color:var(--muted);font-weight:400;font-size:.9rem">${w.y}</span></div>
         <div class="wr">ציון: <b class="${(w.pending||changed)?'pending':''}">${eff}</b>${changed?' <span class="wnote pending">עודכן דרך הדף, ממתין לעיבוד</span>':''}</div>
         ${w.note?`<div class="wnote">${w.note}</div>`:''}
       </div>
       <button class="wbtn" data-wi="${i}">${FEEDBACK.has(w.t.toLowerCase())?'ערוך דירוג':(w.needsRating?'דרג':'עדכן דירוג')}</button>
     </div>`;}).join('');
+  wg.querySelectorAll('.wclick').forEach(p=>{
+    const w=WATCHED[+p.dataset.wi2];
+    p.onclick=()=>openShowCard(w.tmid||w.t,{curated:false});
+  });
   wg.querySelectorAll('.wbtn').forEach(b=>{
     const w=WATCHED[+b.dataset.wi];
     b.onclick=()=>openFeedback(w.t,w.tmid);
@@ -397,7 +401,7 @@ function render(filter){
   const total=shows.filter(s=>!s.moved).length;
   grid.innerHTML=list.map(s=>`
     <article class="card${s.r===1?' top':''}">
-      <div class="poster" style="background:${s.poster?`linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${s.poster}') center 20%/cover no-repeat`:`linear-gradient(160deg,${s.tint},#101218 85%)`}">
+      <div class="poster pclick" data-si="${shows.indexOf(s)}" style="background:${s.poster?`linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${s.poster}') center 20%/cover no-repeat`:`linear-gradient(160deg,${s.tint},#101218 85%)`}">
         <span class="rank" aria-hidden="true">${s.r}</span>
         <div class="ttl"><bdi>${s.t}</bdi><span class="yr">${s.y}</span></div>
       </div>
@@ -422,6 +426,10 @@ function render(filter){
       </div>
     </article>`).join('');
   count.textContent=list.length===total?`מציג את כל ${total} הסדרות`:`${list.length} סדרות בסינון הנוכחי`;
+  grid.querySelectorAll('.pclick').forEach(p=>{
+    const s=shows[+p.dataset.si];
+    p.onclick=()=>openShowCard(s.tmid||s.t,{m:s.m,curated:!s.est});
+  });
   grid.querySelectorAll('.seenbtn').forEach(b=>{
     const s=shows[+b.dataset.si];
     if(FEEDBACK.has(s.t.toLowerCase())){b.textContent='ערוך דירוג';b.classList.add('done');}
@@ -704,6 +712,41 @@ async function tmdbCard(title){
   if(!hit) return null;
   return await buildFull(hit);
 }
+async function buildFullById(id,preset){
+  preset=preset||{};
+  try{
+    const d=await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${TMDB_KEY}&append_to_response=videos,watch%2Fproviders,external_ids,aggregate_credits`).then(r=>r.json());
+    const gids=(d.genres||[]).map(g=>g.id);
+    const x={name:d.name,first_air_date:d.first_air_date,vote_average:d.vote_average,poster_path:d.poster_path,id:d.id,genre_ids:gids,origin_country:d.origin_country||[]};
+    const c={t:d.name,y:(d.first_air_date||"").slice(0,4),m:(preset.m!=null?preset.m:estMatch(x)),curated:!!preset.curated,
+      tm:d.vote_average?d.vote_average.toFixed(1):null,poster:d.poster_path?`https://image.tmdb.org/t/p/w500${d.poster_path}`:null,id:d.id,f:[],
+      g:gids.map(i=>GENRE_HE[i]).filter(Boolean).join(' · ')||'—',
+      o:(d.origin_country||[]).includes('KR')?'KR':((d.origin_country||[])[0]||'US')};
+    const stMap={"Ended":"הסתיימה","Returning Series":"עדיין משודרת","Canceled":"בוטלה","In Production":"בהפקה"};
+    c.st=`${stMap[d.status]||d.status||""}${d.number_of_seasons>1?` · ${d.number_of_seasons} עונות`:""} · ${d.number_of_episodes} פרקים`;
+    const th=d["watch/providers"]&&d["watch/providers"].results&&d["watch/providers"].results.TH;
+    c.provList=th&&th.flatrate?[...new Set(th.flatrate.map(p=>p.provider_name))]:null;
+    c.prov=c.provList?c.provList.slice(0,4).join(" · "):null;
+    const vids=(d.videos&&d.videos.results)||[];
+    const v=vids.find(o=>o.site==="YouTube"&&o.type==="Trailer")||vids.find(o=>o.site==="YouTube");
+    c.yt=v?`https://www.youtube.com/watch?v=${v.key}`:null;
+    c.imdbU=d.external_ids&&d.external_ids.imdb_id?`https://www.imdb.com/title/${d.external_ids.imdb_id}/`:null;
+    const fullCast=((d.aggregate_credits&&d.aggregate_credits.cast)||[]).slice(0,12);
+    c.cast=fullCast.map(a=>a.name);
+    c.castFull=fullCast.map(a=>({id:a.id,name:a.name,p:a.profile_path,role:(a.roles&&a.roles[0]&&a.roles[0].character)||''}));
+    return c;
+  }catch(e){return null;}
+}
+async function openShowCard(idOrTitle,preset){
+  const el=document.getElementById('dtModal');
+  el.innerHTML='<div class="dtb"><span class="fbnote">טוען כרטיס סדרה...</span></div>';
+  document.getElementById('dtOverlay').classList.add('open');
+  let c=null;
+  if(typeof idOrTitle==='number'&&idOrTitle) c=await buildFullById(idOrTitle,preset);
+  if(!c&&typeof idOrTitle==='string') c=await tmdbCard(idOrTitle);
+  if(c) openDetail(c);
+  else el.innerHTML='<div class="dtb"><span class="fbnote">לא הצלחתי לטעון את הסדרה</span></div>';
+}
 async function buildFull(x){
   const c={t:x.name,y:(x.first_air_date||"").slice(0,4),m:estMatch(x),tm:x.vote_average?x.vote_average.toFixed(1):null,
     poster:x.poster_path?`https://image.tmdb.org/t/p/w500${x.poster_path}`:null,id:x.id,f:[],
@@ -750,7 +793,7 @@ function renderRecs(){
   document.getElementById('nRecs').textContent=RECS.length?`(${RECS.length})`:'';
   document.getElementById('recGrid').innerHTML=RECS.map(c=>`
     <article class="card">
-      <div class="poster" style="background:${c.poster?`linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${c.poster}') center 20%/cover no-repeat`:'var(--tint-crime)'}">
+      <div class="poster rclick" data-id="${c.id}" style="background:${c.poster?`linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${c.poster}') center 20%/cover no-repeat`:'var(--tint-crime)'}">
         <div class="ttl"><bdi>${c.t}</bdi><span class="yr">${c.y}</span></div>
       </div>
       <div class="body">
@@ -770,6 +813,7 @@ function renderRecs(){
       </div>
     </article>`).join('');
   document.querySelectorAll('.rseen').forEach(b=>{b.onclick=()=>openFeedback(b.dataset.n,+b.dataset.id);});
+  document.querySelectorAll('.rclick').forEach(p=>{p.onclick=()=>openShowCard(+p.dataset.id);});
 }
 async function hydrateLists(){
   for(const t of RECS_T){
@@ -794,7 +838,7 @@ function openDetail(c){
     </div>
     <div class="dtb">
       <div class="meta">
-        <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m} (אומדן)</span>
+        <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}${c.curated?"":" (אומדן)"}</span>
         ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
         <span class="plat">${ORIGIN_HE[c.o]||c.o}</span>
       </div>
@@ -1017,7 +1061,7 @@ function renderDisc(){
     const cards=DISC.filter(passes);
     document.getElementById('discGrid').innerHTML=cards.map(c=>`
       <article class="card">
-        <div class="poster" style="background:linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${c.poster}') center 20%/cover no-repeat">
+        <div class="poster dclick" data-id="${c.id}" style="background:linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${c.poster}') center 20%/cover no-repeat">
           <div class="ttl"><bdi>${c.t}</bdi><span class="yr">${c.y}</span></div>
         </div>
         <div class="body">
@@ -1036,6 +1080,7 @@ function renderDisc(){
           </div>
         </div>
       </article>`).join('');
+    document.querySelectorAll('.dclick').forEach(p=>{p.onclick=()=>openShowCard(+p.dataset.id);});
     document.querySelectorAll('.dseen2').forEach(b=>{
       const n=b.dataset.n.toLowerCase();
       if(FEEDBACK.has(n)){b.textContent='ערוך דירוג';b.classList.add('done');}
