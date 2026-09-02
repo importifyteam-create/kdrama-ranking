@@ -108,6 +108,14 @@
   .wcard .wbtn{font-family:inherit;font-size:.88rem;font-weight:500;color:var(--fg);background:none;border:1px solid var(--border);border-radius:3px;padding:9px 16px;min-height:44px;cursor:pointer;flex-shrink:0}
   .wcard .wbtn:hover{border-color:var(--accent);color:var(--accent)}
   .pending{color:var(--accent)}
+  .addbar{margin-top:18px}
+  .addbar input{width:100%;max-width:420px;border-radius:4px}
+  #addResults{display:flex;flex-direction:column;gap:8px;margin-top:10px;max-width:420px}
+  .arow{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:8px 12px;cursor:pointer}
+  .arow:hover{border-color:var(--accent)}
+  .arow .arp{width:38px;height:54px;border-radius:2px;background:#101218 center/cover no-repeat;flex-shrink:0}
+  .arow .arn{direction:ltr;text-align:left;font-size:.92rem;flex:1}
+  .arow .ary{color:var(--muted);font-size:.85rem}
   @media(max-width:760px){
     .layout{display:block}
     #side{flex-direction:row;position:sticky;top:0;z-index:6;background:linear-gradient(var(--bg) 88%,transparent);padding:10px 0;min-width:0;overflow-x:auto}
@@ -161,6 +169,10 @@
 
       <section id="view-watched" hidden>
         <p class="count">הסדרות שכבר צפית, עם הציונים שנתת. סדרה שדירגת דרך הדף מופיעה כאן כ"ממתין לעיבוד" עד הסריקה הבאה של קלוד, שמכניסה אותה לפרופיל ומדרגת את הכל מחדש.</p>
+        <div class="addbar">
+          <input class="fsel" id="addSearch" placeholder="הוסף כותר שראית: הקלד שם סדרה..." dir="ltr" aria-label="הוספת כותר">
+          <div id="addResults"></div>
+        </div>
         <div class="wgrid" id="wgrid"></div>
       </section>
 
@@ -448,6 +460,14 @@ async function loadFeedback(){
       // הרשימה ממוינת מהחדש לישן, הראשון שנתפס = הפידבק העדכני
       if(m&&!FEEDBACK.has(m[1].toLowerCase())) FEEDBACK.set(m[1].toLowerCase(),{url:i.html_url,body:i.body||''});
     });
+    // פידבק על כותר שלא ברשימות (נוסף ידנית) נכנס ל"ראיתי"
+    FEEDBACK.forEach((v,k)=>{
+      if(!shows.some(s=>s.t.toLowerCase()===k)&&!WATCHED.some(w=>w.t.toLowerCase()===k)){
+        const t=/סדרה: (.+)/.exec(v.body||'');
+        WATCHED.push({t:t?t[1].trim():k,y:'',rating:"פידבק נשלח",note:"נוסף ידנית, ממתין לעיבוד של קלוד",pending:true});
+        KNOWN.add(k);
+      }
+    });
     // סדרה מהדירוג שקיבלה פידבק עוברת ל"ראיתי" עד הסריקה הבאה של קלוד
     shows.forEach(s=>{
       if(!s.moved&&FEEDBACK.has(s.t.toLowerCase())){
@@ -462,6 +482,35 @@ async function loadFeedback(){
 }
 renderWatched();
 enrichWatched();
+
+// ====== הוספת כותר ידנית ל"ראיתי" ======
+const PICKED={}; // title -> {y, poster}
+let addTimer=null;
+document.getElementById('addSearch').addEventListener('input',e=>{
+  clearTimeout(addTimer);
+  const q=e.target.value.trim();
+  if(q.length<2){document.getElementById('addResults').innerHTML='';return;}
+  addTimer=setTimeout(async ()=>{
+    try{
+      const r=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}`).then(x=>x.json());
+      const res=(r.results||[]).slice(0,6);
+      document.getElementById('addResults').innerHTML=res.map(x=>`
+        <div class="arow" data-n="${(x.name||'').replace(/"/g,'&quot;')}" data-id="${x.id}" data-y="${(x.first_air_date||'').slice(0,4)}" data-p="${x.poster_path||''}">
+          <div class="arp" style="${x.poster_path?`background-image:url('https://image.tmdb.org/t/p/w92${x.poster_path}')`:''}"></div>
+          <span class="arn"><bdi>${x.name}</bdi></span>
+          <span class="ary">${(x.first_air_date||'').slice(0,4)}</span>
+        </div>`).join('');
+      document.querySelectorAll('.arow').forEach(el=>{
+        el.onclick=()=>{
+          PICKED[el.dataset.n]={y:el.dataset.y,poster:el.dataset.p?`https://image.tmdb.org/t/p/w185${el.dataset.p}`:null};
+          document.getElementById('addResults').innerHTML='';
+          document.getElementById('addSearch').value='';
+          openFeedback(el.dataset.n,+el.dataset.id);
+        };
+      });
+    }catch(e){}
+  },350);
+});
 
 function parseFb(body){
   const g=re=>{const m=re.exec(body||'');return m?m[1].trim():'';};
@@ -539,6 +588,11 @@ document.getElementById('fbSend').onclick=async ()=>{
         if(!s.moved&&s.t===fbShow){s.moved=true;
           WATCHED.unshift({t:s.t,y:parseInt(s.y),rating:"פידבק נשלח",note:"ייכנס לפרופיל ולדירוג המחודש בסריקה הבאה של קלוד",pending:true,tmid:s.tmid,poster:s.poster});}
       });
+      if(!WATCHED.some(w=>w.t.toLowerCase()===fbShow.toLowerCase())){
+        const meta=PICKED[fbShow]||{};
+        WATCHED.unshift({t:fbShow,y:meta.y||'',rating:"פידבק נשלח",note:"נוסף ידנית, ייכנס לפרופיל בסריקה הבאה של קלוד",pending:true,tmid:fbId,poster:meta.poster});
+        KNOWN.add(fbShow.toLowerCase());
+      }
       renumber(); render(currentFilter); renderWatched();
     },900);
   }catch(e){
