@@ -254,7 +254,7 @@
 
       <section id="view-disc" hidden>
         <div id="discover" hidden>
-          <h2 class="disc-title">חדשים <span class="disc-sub">כותרים חדשים שעברו את הרף, מתעדכן אוטומטית בכל פתיחת דף. ההתאמה כאן היא אומדן אוטומטי עד שקלוד בודק לעומק</span></h2>
+          <h2 class="disc-title">חדשים <span class="disc-sub">כותרים חדשים שעברו את הרף, מתעדכן אוטומטית בכל פתיחת דף</span></h2>
           <div class="grid" id="discGrid"></div>
         </div>
         <p class="count" id="discEmpty" hidden>אין כרגע סדרות חדשות שעוברות את הרף. הרשימה מתרעננת בכל פתיחת דף.</p>
@@ -440,7 +440,7 @@ function render(filter){
       </div>
       <div class="body">
         <div class="meta">
-          <span class="tier t${s.m>=85?1:s.m>=72?2:3}">מקום ${s.r} · התאמה: ${s.m}${s.est?" (אומדן)":""}</span>
+          <span class="tier t${s.m>=85?1:s.m>=72?2:3}">מקום ${s.r} · התאמה: ${s.m}</span>
           ${s.mdl?`<span class="mdl">MDL <b>${s.mdl}</b></span>`:``}
           ${s.tm?`<span class="mdl">TMDB <b>${s.tm}</b></span>`:``}
           ${!s.mdl&&!s.tm?`<span class="mdl plat">ציון MDL בקישור</span>`:``}
@@ -893,7 +893,7 @@ function openDetail(c){
         <div>
           <div class="herotitle"><bdi>${c.t}</bdi><span class="heroyr">${c.y}</span></div>
           <div class="meta" style="margin-top:10px">
-            <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}${c.curated?"":" (אומדן)"}</span>
+            <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}</span>
             ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
             <span class="plat">${ORIGIN_HE[c.o]||c.o}</span>
           </div>
@@ -995,8 +995,8 @@ async function openActorCard(pid,name){
             <div class="filmtile acrow2" data-i="${c.id}">
               <div class="fph" style="background-image:url('https://image.tmdb.org/t/p/w342${c.poster_path}')"></div>
               <div class="fnm"><bdi>${c.name}</bdi> <span style="color:var(--muted);font-weight:400">${(c.first_air_date||'').slice(0,4)}</span></div>
-              <div class="fmt">התאמה: ${estMatch(c)} (אומדן) · TMDB ${c.vote_average?c.vote_average.toFixed(1):'—'}</div>
-              ${c.character?`<div class="fmt"><bdi>${c.character}</bdi></div>`:''}
+              <div class="fmt">התאמה: ${estMatch(c)} · <bdi>TMDB ${c.vote_average?c.vote_average.toFixed(1):'—'}</bdi></div>
+              ${c.character?`<div class="fmt" style="direction:ltr;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><bdi>${c.character}</bdi></div>`:''}
               <div>${inRank.has((c.name||'').toLowerCase())?'<span class="tag">בדירוג שלך</span>':''}${seen.has((c.name||'').toLowerCase())?'<span class="tag"> ראית</span>':''}</div>
             </div>`).join('')||'<span class="fbnote">לא נמצאו סדרות</span>'}
         </div>
@@ -1125,7 +1125,7 @@ function renderDisc(){
         </div>
         <div class="body">
           <div class="meta">
-            <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m} (אומדן)</span>
+            <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}</span>
             ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
             <span class="plat">${c.kr?'קוריאה':'ארה"ב'}</span>
           </div>
