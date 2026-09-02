@@ -247,7 +247,7 @@
           <div id="recResults"></div>
         </div>
         <div class="secttl">סדרות מועדפות</div>
-        <div class="grid" id="recGrid"></div>
+        <div class="filmgrid" id="recGrid"></div>
         <div class="secttl">שחקנים מועדפים</div>
         <div class="castgrid" id="favActors"><span class="fbnote">עדיין לא סימנת שחקנים בכוכב</span></div>
       </section>
@@ -859,28 +859,12 @@ function updateRecsCount(){
 }
 function renderRecs(){
   updateRecsCount();
-  document.getElementById('recGrid').innerHTML=RECS.map(c=>`
-    <article class="card">
-      <div class="poster rclick" data-id="${c.id}" style="background:${c.poster?`linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${c.poster}') center 20%/cover no-repeat`:'var(--tint-crime)'}">
-        <div class="ttl"><bdi>${c.t}</bdi><span class="yr">${c.y}</span></div>
-      </div>
-      <div class="body">
-        <div class="meta">
-          <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m} (אומדן)</span>
-          ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
-          <span class="plat">${ORIGIN_HE[c.o]||c.o}</span>
-        </div>
-        <p class="genres">${c.g}${c.st?` · ${c.st}`:''}</p>
-        <p class="genres">${c.prov?`זמין בתאילנד: ${c.prov}`:'אין סטרימינג בתאילנד כרגע'}</p>
-        <div class="links">
-          <a href="https://www.themoviedb.org/tv/${c.id}" target="_blank" rel="noopener">TMDB</a>
-          ${c.imdbU?`<a href="${c.imdbU}" target="_blank" rel="noopener">IMDb</a>`:''}
-          <a href="${c.yt||`https://www.youtube.com/results?search_query=${encodeURIComponent(c.t+' official trailer')}`}" target="_blank" rel="noopener">טריילר</a>
-          <button class="seenbtn rseen" data-n="${c.t.replace(/"/g,'&quot;')}" data-id="${c.id}">ראיתי</button>
-        </div>
-      </div>
-    </article>`).join('');
-  document.querySelectorAll('.rseen').forEach(b=>{b.onclick=()=>openFeedback(b.dataset.n,+b.dataset.id);});
+  document.getElementById('recGrid').innerHTML=RECS.length?RECS.map(c=>`
+    <div class="filmtile rclick" data-id="${c.id}">
+      <div class="fph" style="${c.poster?`background-image:url('${c.poster}')`:''}"></div>
+      <div class="fnm"><bdi>${c.t}</bdi> <span style="color:var(--muted);font-weight:400">${c.y}</span></div>
+      <div class="fmt">התאמה: ${c.m} (אומדן)${c.tm?` · TMDB ${c.tm}`:''}</div>
+    </div>`).join(''):'<span class="fbnote">עדיין לא שמרת סדרות</span>';
   document.querySelectorAll('.rclick').forEach(p=>{p.onclick=()=>openShowCard(+p.dataset.id);});
 }
 async function hydrateLists(){
