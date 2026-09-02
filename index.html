@@ -73,11 +73,34 @@
   .dseen:hover{color:var(--accent)}
   #fbOverlay,#dtOverlay{position:fixed;inset:0;background:rgba(10,11,15,.8);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
   #dtOverlay.open{display:flex}
-  #dtModal{background:var(--surface);border:1px solid var(--border);border-radius:6px;max-width:560px;width:100%;max-height:90vh;overflow:auto}
-  #dtModal .dth{height:220px;background:#101218 center 20%/cover no-repeat;display:flex;align-items:flex-end;padding:16px}
-  #dtModal .dtt{font-family:'Frank Ruhl Libre',serif;font-weight:600;font-size:1.6rem;direction:ltr;text-align:left;text-shadow:0 1px 8px rgba(0,0,0,.85)}
-  #dtModal .dtb{padding:20px;display:flex;flex-direction:column;gap:10px}
-  #dtModal .dtcast{color:var(--muted);font-size:.9rem;direction:ltr;text-align:left}
+  #dtOverlay{padding:0}
+  #dtModal{background:var(--bg);width:100%;height:100vh;max-height:100vh;overflow:auto;border:0;border-radius:0}
+  .dtclose{position:fixed;top:16px;left:16px;z-index:60;width:46px;height:46px;border-radius:50%;background:rgba(14,16,21,.75);border:1px solid var(--border);color:var(--fg);font-size:1.3rem;cursor:pointer;backdrop-filter:blur(6px)}
+  .dtclose:hover{border-color:var(--fg)}
+  .dthero{position:relative;min-height:44vh;background:#101218 center 20%/cover no-repeat;display:flex;align-items:flex-end}
+  .dthero .heroshade{position:absolute;inset:0;background:linear-gradient(rgba(14,16,21,.25) 30%,var(--bg) 98%)}
+  .heroin{position:relative;max-width:1100px;margin:0 auto;width:100%;padding:24px 20px;display:flex;align-items:flex-end;gap:26px}
+  .heroposter{width:190px;aspect-ratio:2/3;border-radius:8px;background:#181b22 center/cover no-repeat;box-shadow:0 16px 40px rgba(0,0,0,.6);flex-shrink:0}
+  .herotitle{font-family:'Frank Ruhl Libre',serif;font-weight:800;font-size:clamp(1.8rem,4.5vw,3rem);line-height:1.1;direction:ltr;text-align:left;text-shadow:0 2px 14px rgba(0,0,0,.8)}
+  .heroyr{color:rgba(255,255,255,.65);font-size:1.1rem;font-weight:400;margin-left:10px}
+  .dtwrap{max-width:1100px;margin:0 auto;padding:22px 20px 70px;display:flex;flex-direction:column;gap:16px}
+  .dtwrap .meta{font-size:1.05rem}
+  .castgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:16px;margin-top:8px}
+  .casttile{position:relative;cursor:pointer}
+  .casttile .cph{aspect-ratio:3/4;border-radius:8px;background:#22262e center top/cover no-repeat}
+  .casttile .cnm{direction:ltr;text-align:left;font-size:.92rem;font-weight:500;margin-top:8px;line-height:1.25}
+  .casttile .crl{direction:ltr;text-align:left;font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .casttile .star{position:absolute;top:6px;left:6px;background:rgba(14,16,21,.72);border-radius:50%;min-width:38px;min-height:38px;padding:0}
+  .secttl{font-family:'Frank Ruhl Libre',serif;font-weight:800;font-size:1.3rem;margin-top:10px}
+  .filmgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:18px;margin-top:8px}
+  .filmtile{cursor:pointer}
+  .filmtile .fph{aspect-ratio:2/3;border-radius:8px;background:#181b22 center/cover no-repeat;border:1px solid transparent}
+  .filmtile:hover .fph{border-color:var(--accent)}
+  .filmtile .fnm{direction:ltr;text-align:left;font-size:.95rem;font-weight:500;margin-top:8px}
+  .filmtile .fmt{font-size:.82rem;color:var(--muted);margin-top:2px}
+  .filmtile .tag{color:var(--accent);font-size:.8rem}
+  .acheroname{font-family:'Frank Ruhl Libre',serif;font-weight:800;font-size:clamp(1.7rem,4vw,2.6rem);direction:ltr;text-align:left}
+  .acheroimg{width:170px;aspect-ratio:3/4;border-radius:10px;background:#22262e center top/cover no-repeat;box-shadow:0 16px 40px rgba(0,0,0,.6);flex-shrink:0}
   #fbOverlay.open{display:flex}
   #fbModal{background:var(--surface);border:1px solid var(--border);border-radius:6px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:24px}
   #fbModal h3{font-family:'Frank Ruhl Libre',serif;font-size:1.3rem;direction:ltr;text-align:left}
@@ -719,7 +742,7 @@ async function buildFullById(id,preset){
     const gids=(d.genres||[]).map(g=>g.id);
     const x={name:d.name,first_air_date:d.first_air_date,vote_average:d.vote_average,poster_path:d.poster_path,id:d.id,genre_ids:gids,origin_country:d.origin_country||[]};
     const c={t:d.name,y:(d.first_air_date||"").slice(0,4),m:(preset.m!=null?preset.m:estMatch(x)),curated:!!preset.curated,
-      tm:d.vote_average?d.vote_average.toFixed(1):null,poster:d.poster_path?`https://image.tmdb.org/t/p/w500${d.poster_path}`:null,id:d.id,f:[],
+      tm:d.vote_average?d.vote_average.toFixed(1):null,poster:d.poster_path?`https://image.tmdb.org/t/p/w500${d.poster_path}`:null,backdrop:d.backdrop_path?`https://image.tmdb.org/t/p/w1280${d.backdrop_path}`:null,id:d.id,f:[],
       g:gids.map(i=>GENRE_HE[i]).filter(Boolean).join(' · ')||'—',
       o:(d.origin_country||[]).includes('KR')?'KR':((d.origin_country||[])[0]||'US')};
     const stMap={"Ended":"הסתיימה","Returning Series":"עדיין משודרת","Canceled":"בוטלה","In Production":"בהפקה"};
@@ -749,7 +772,7 @@ async function openShowCard(idOrTitle,preset){
 }
 async function buildFull(x){
   const c={t:x.name,y:(x.first_air_date||"").slice(0,4),m:estMatch(x),tm:x.vote_average?x.vote_average.toFixed(1):null,
-    poster:x.poster_path?`https://image.tmdb.org/t/p/w500${x.poster_path}`:null,id:x.id,f:[],
+    poster:x.poster_path?`https://image.tmdb.org/t/p/w500${x.poster_path}`:null,backdrop:x.backdrop_path?`https://image.tmdb.org/t/p/w1280${x.backdrop_path}`:null,id:x.id,f:[],
     g:(x.genre_ids||[]).map(i=>GENRE_HE[i]).filter(Boolean).join(' · ')||'—',
     o:(x.origin_country||[]).includes('KR')?'KR':((x.origin_country||[])[0]||'US')};
   try{
@@ -833,36 +856,44 @@ function openDetail(c){
   const inRecs=RECS.some(r=>r.t.toLowerCase()===c.t.toLowerCase());
   const inMain=shows.some(s=>s.t.toLowerCase()===c.t.toLowerCase());
   el.innerHTML=`
-    <div class="dth" style="${c.poster?`background-image:linear-gradient(rgba(14,16,21,.2),rgba(14,16,21,.85)),url('${c.poster}')`:''}">
-      <div class="dtt"><bdi>${c.t}</bdi> <span style="font-size:1rem;color:rgba(255,255,255,.6)">${c.y}</span></div>
-    </div>
-    <div class="dtb">
-      <div class="meta">
-        <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}${c.curated?"":" (אומדן)"}</span>
-        ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
-        <span class="plat">${ORIGIN_HE[c.o]||c.o}</span>
-      </div>
-      <p class="genres">${c.g}${c.st?` · ${c.st}`:''}</p>
-      <p class="genres">${c.prov?`זמין בתאילנד: ${c.prov}`:'אין סטרימינג בתאילנד כרגע'}</p>
-      ${c.castFull&&c.castFull.length?`<div id="dtCast">${c.castFull.map(a=>`
-        <div class="actorrow">
-          <div class="ap" ${a.p?`style="background-image:url('https://image.tmdb.org/t/p/w185${a.p}')"`:''}>${a.p?'':'?'}</div>
-          <div class="ainfo dtActor" data-pid="${a.id}" data-n="${a.name.replace(/"/g,'&quot;')}" style="cursor:pointer">
-            <div class="an">${isFav(a.name)?'★ ':''}<bdi>${a.name}</bdi></div>
-            ${a.role?`<div class="ac"><bdi>${a.role}</bdi></div>`:''}
+    <button class="dtclose" id="dtClose" aria-label="סגור">✕</button>
+    <div class="dthero" style="${(c.backdrop||c.poster)?`background-image:url('${c.backdrop||c.poster}')`:''}">
+      <div class="heroshade"></div>
+      <div class="heroin">
+        <div class="heroposter" style="${c.poster?`background-image:url('${c.poster}')`:''}"></div>
+        <div>
+          <div class="herotitle"><bdi>${c.t}</bdi><span class="heroyr">${c.y}</span></div>
+          <div class="meta" style="margin-top:10px">
+            <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}${c.curated?"":" (אומדן)"}</span>
+            ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
+            <span class="plat">${ORIGIN_HE[c.o]||c.o}</span>
           </div>
-          <button class="star ${isFav(a.name)?'on':''}" data-a="${a.name.replace(/"/g,'')}" title="שחקן מועדף">★</button>
-        </div>`).join('')}</div>`:''}
-      <div class="links">
+        </div>
+      </div>
+    </div>
+    <div class="dtwrap">
+      <p class="genres" style="font-size:1rem">${c.g}${c.st?` · ${c.st}`:''}</p>
+      <p class="genres" style="font-size:1rem">${c.prov?`זמין בתאילנד: ${c.prov}`:'אין סטרימינג בתאילנד כרגע'}</p>
+      <div class="links" style="max-width:560px">
         <a href="https://www.themoviedb.org/tv/${c.id}" target="_blank" rel="noopener">TMDB</a>
         ${c.imdbU?`<a href="${c.imdbU}" target="_blank" rel="noopener">IMDb</a>`:''}
         <a href="${c.yt||`https://www.youtube.com/results?search_query=${encodeURIComponent(c.t+' official trailer')}`}" target="_blank" rel="noopener">טריילר</a>
       </div>
-      <div class="fbactions">
+      <div class="fbactions" style="max-width:560px">
         <button class="fbsend" id="dtRec" ${inRecs?'disabled':''}>${inRecs?'כבר בהמלצות':'הוסף להמלצות'}</button>
         ${c.m>=72?`<button class="fbsend" id="dtMain" style="background:var(--surface);border:1px solid var(--accent);color:var(--accent)" ${inMain?'disabled':''}>${inMain?'כבר בדירוג':'צרף לדירוג הראשי'}</button>`:''}
-        <button class="fbcancel" id="dtClose">סגור</button>
       </div>
+      ${c.castFull&&c.castFull.length?`
+      <div class="secttl">שחקנים</div>
+      <div class="castgrid" id="dtCast">
+        ${c.castFull.map(a=>`
+          <div class="casttile">
+            <button class="star ${isFav(a.name)?'on':''}" data-a="${a.name.replace(/"/g,'')}" title="שחקן מועדף">★</button>
+            <div class="cph dtActor" data-pid="${a.id}" data-n="${a.name.replace(/"/g,'&quot;')}" ${a.p?`style="background-image:url('https://image.tmdb.org/t/p/w342${a.p}')"`:''}></div>
+            <div class="cnm dtActor" data-pid="${a.id}" data-n="${a.name.replace(/"/g,'&quot;')}">${isFav(a.name)?'★ ':''}<bdi>${a.name}</bdi></div>
+            ${a.role?`<div class="crl"><bdi>${a.role}</bdi></div>`:''}
+          </div>`).join('')}
+      </div>`:''}
       <p class="fbnote">ההוספה נשמרת ומסתנכרנת בין מכשירים. קלוד בודק כל צירוף לדירוג בסריקה הבאה וקובע התאמה סופית.</p>
     </div>`;
   document.getElementById('dtOverlay').classList.add('open');
@@ -918,31 +949,30 @@ async function openActorCard(pid,name){
     const seen=new Set([...WATCHED.map(w=>w.t.toLowerCase())]);
     const inRank=new Set(shows.filter(s=>!s.moved).map(s=>s.t.toLowerCase()));
     const credits=[...new Map(((p.tv_credits&&p.tv_credits.cast)||[]).filter(c=>c.poster_path).map(c=>[c.id,c])).values()]
-      .sort((a,b)=>(b.vote_count||0)-(a.vote_count||0)).slice(0,10);
+      .sort((a,b)=>(b.vote_count||0)-(a.vote_count||0)).slice(0,14);
     el.innerHTML=`
-      <div class="achead">
-        <div class="app" style="${p.profile_path?`background-image:url('https://image.tmdb.org/t/p/w185${p.profile_path}')`:''}"></div>
-        <div>
-          <div class="acn"><bdi>${p.name}</bdi></div>
-          <button class="star ${isFav(p.name)?'on':''}" id="acStar" title="שחקן מועדף">★ <span style="font-size:.85rem;font-family:Heebo">${isFav(p.name)?'מועדף':'סמן כמועדף'}</span></button>
+      <button class="dtclose" id="acClose" aria-label="סגור">✕</button>
+      <div class="dtwrap" style="padding-top:70px">
+        <div style="display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap">
+          <div class="acheroimg" style="${p.profile_path?`background-image:url('https://image.tmdb.org/t/p/w342${p.profile_path}')`:''}"></div>
+          <div>
+            <div class="acheroname"><bdi>${p.name}</bdi></div>
+            <button class="star ${isFav(p.name)?'on':''}" id="acStar" title="שחקן מועדף" style="padding-right:0">★ <span style="font-size:.9rem;font-family:Heebo">${isFav(p.name)?'מועדף':'סמן כמועדף'}</span></button>
+          </div>
         </div>
-      </div>
-      <div class="acshows">
-        ${credits.map(c=>`
-          <div class="acrow" data-i="${c.id}">
-            <div class="acp" style="background-image:url('https://image.tmdb.org/t/p/w92${c.poster_path}')"></div>
-            <div class="aci">
-              <div class="act"><bdi>${c.name}</bdi> <span style="color:var(--muted);font-weight:400">${(c.first_air_date||'').slice(0,4)}</span></div>
-              <div class="acm">התאמה: ${estMatch(c)} (אומדן) · TMDB ${c.vote_average?c.vote_average.toFixed(1):'—'}${c.character?` · <bdi>${c.character}</bdi>`:''}
-                ${inRank.has((c.name||'').toLowerCase())?'<span class="tag"> · בדירוג שלך</span>':''}${seen.has((c.name||'').toLowerCase())?'<span class="tag"> · ראית</span>':''}
-              </div>
-            </div>
-          </div>`).join('')||'<span class="fbnote">לא נמצאו סדרות</span>'}
-      </div>
-      <div class="dtb" style="padding-top:0">
-        <div class="fbactions">
+        <div class="secttl">הסדרות שלו</div>
+        <div class="filmgrid">
+          ${credits.map(c=>`
+            <div class="filmtile acrow2" data-i="${c.id}">
+              <div class="fph" style="background-image:url('https://image.tmdb.org/t/p/w342${c.poster_path}')"></div>
+              <div class="fnm"><bdi>${c.name}</bdi> <span style="color:var(--muted);font-weight:400">${(c.first_air_date||'').slice(0,4)}</span></div>
+              <div class="fmt">התאמה: ${estMatch(c)} (אומדן) · TMDB ${c.vote_average?c.vote_average.toFixed(1):'—'}</div>
+              ${c.character?`<div class="fmt"><bdi>${c.character}</bdi></div>`:''}
+              <div>${inRank.has((c.name||'').toLowerCase())?'<span class="tag">בדירוג שלך</span>':''}${seen.has((c.name||'').toLowerCase())?'<span class="tag"> ראית</span>':''}</div>
+            </div>`).join('')||'<span class="fbnote">לא נמצאו סדרות</span>'}
+        </div>
+        <div class="fbactions" style="max-width:480px">
           <button class="fbcancel" id="acFilter">סנן את הרשימות לפי השחקן</button>
-          <button class="fbcancel" id="acClose">סגור</button>
         </div>
       </div>`;
     document.getElementById('acClose').onclick=()=>document.getElementById('dtOverlay').classList.remove('open');
@@ -950,7 +980,7 @@ async function openActorCard(pid,name){
     const st=document.getElementById('acStar');
     st.onclick=()=>toggleFav(p.name,st);
     const byId=Object.fromEntries(credits.map(c=>[c.id,c]));
-    el.querySelectorAll('.acrow').forEach(row=>{
+    el.querySelectorAll('.acrow2').forEach(row=>{
       row.onclick=async ()=>{
         const full=await buildFull(byId[+row.dataset.i]);
         if(full) openDetail(full);
