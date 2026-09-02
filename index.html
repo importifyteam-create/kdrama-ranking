@@ -137,6 +137,7 @@
           <button class="chip" aria-pressed="false" data-f="netflix">Netflix</button>
           <button class="chip" aria-pressed="false" data-f="disney">Disney+</button>
           <button class="chip" aria-pressed="false" data-f="viki">Viki / Viu</button>
+          <button class="chip" aria-pressed="false" data-f="hbo">HBO Max</button>
           <button class="chip" aria-pressed="false" data-f="other">אחר</button>
           <select class="fsel" id="fScore" aria-label="סינון לפי ציון">
             <option value="0">כל ציון</option>
@@ -307,7 +308,19 @@ document.querySelectorAll('.side-btn').forEach(btn=>{
 });
 
 function passes(s){
-  if(F.plat!=='all'&&!s.f.includes(F.plat)) return false;
+  if(F.plat!=='all'){
+    if(s.provList&&s.provList.length){
+      const j=s.provList.join(' ').toLowerCase();
+      if(F.plat==='netflix'&&!j.includes('netflix')) return false;
+      if(F.plat==='disney'&&!j.includes('disney')) return false;
+      if(F.plat==='viki'&&!(j.includes('viki')||j.includes('viu'))) return false;
+      if(F.plat==='hbo'&&!(j.includes('hbo')||j.includes('max'))) return false;
+      if(F.plat==='other'&&/netflix|disney|viki|viu|hbo|max/.test(j)) return false;
+    }else{
+      if(F.plat==='hbo') return false;
+      if(!s.f.includes(F.plat)) return false;
+    }
+  }
   if(F.score){const sc=parseFloat(s.mdl)||parseFloat(s.tm)||0;if(sc<F.score)return false;}
   const yr=parseInt(s.y);
   if(F.year==='new'&&yr<2025) return false;
@@ -375,7 +388,8 @@ async function enrich(s){
     const stMap={"Ended":"הסתיימה","Returning Series":"עדיין משודרת","Canceled":"בוטלה","In Production":"בהפקה"};
     s.st=`${stMap[d.status]||d.status||""}${d.number_of_seasons>1?` · ${d.number_of_seasons} עונות`:""} · ${d.number_of_episodes} פרקים`;
     const th=d["watch/providers"]&&d["watch/providers"].results&&d["watch/providers"].results.TH;
-    s.prov=th&&th.flatrate?[...new Set(th.flatrate.map(p=>p.provider_name))].slice(0,4).join(" · "):null;
+    s.provList=th&&th.flatrate?[...new Set(th.flatrate.map(p=>p.provider_name))]:null;
+    s.prov=s.provList?s.provList.slice(0,4).join(" · "):null;
     const vids=(d.videos&&d.videos.results)||[];
     const v=vids.find(x=>x.site==="YouTube"&&x.type==="Trailer")||vids.find(x=>x.site==="YouTube");
     s.yt=v?`https://www.youtube.com/watch?v=${v.key}`:null;
