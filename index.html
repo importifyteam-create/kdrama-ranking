@@ -810,7 +810,7 @@ async function sendListAction(prefix,title){
 }
 function mainEntryFrom(c){
   return {t:c.t,m:c.m,o:c.o,y:c.y,tier:c.m>=85?1:c.m>=72?2:3,mdl:null,plat:c.prov||'זמינות בקישור',f:[],provList:c.provList,tint:'var(--tint-crime)',
-    g:c.g,d:'נוסף ידנית מהחיפוש. ההתאמה היא אומדן, ממתין לבדיקה של קלוד בסריקה הבאה.',like:["הבחירה שלך"],est:true,
+    g:c.g,d:'נוסף ידנית מהחיפוש, ממתין לבדיקה של קלוד בסריקה הבאה.',like:["הבחירה שלך"],est:true,
     tm:c.tm,st:c.st,prov:c.prov,yt:c.yt,poster:c.poster,tmid:c.id,cast:c.cast,
     mdlU:`https://www.themoviedb.org/tv/${c.id}`,imdbU:c.imdbU||`https://www.themoviedb.org/tv/${c.id}`};
 }
