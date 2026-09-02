@@ -185,9 +185,9 @@
 <body>
 <div class="wrap">
   <header>
-    <p class="kicker">עודכן 01.09.2026 · דירוג מחודש: ריאליזם, עומק רגשי ומוסר השכל. 8 הוסרו, 3 נוספו</p>
+    <p class="kicker">עודכן 02.09.2026 · דרמות קוריאניות בלבד · ריאליזם, עומק רגשי ומוסר השכל</p>
     <h1>הדירוג <span class="red">המלא</span></h1>
-    <p class="sub">כל ההמלצות עד היום, מדורגות לפי הפרופיל המלא של משה: צדק מנצח, תיק אחרי תיק, נבל מצמרר, מתח של טיוח, ומשחקי הישרדות עם כללים. הציונים, הפוסטרים, הזמינות והטריילרים נטענים חיים מ-TMDB.</p>
+    <p class="sub">דרמות קוריאניות בלבד, מדורגות לפי הפרופיל המלא של משה: צדק מנצח, תיק אחרי תיק, נבל מצמרר, מתח של טיוח, ומשחקי הישרדות עם כללים. הציונים, הפוסטרים, הזמינות והטריילרים נטענים חיים מ-TMDB.</p>
   </header>
 
   <div class="layout">
@@ -225,8 +225,7 @@
             <input class="fsel" id="fShow" placeholder="חפש סדרה..." dir="ltr" aria-label="חיפוש סדרה" autocomplete="off">
             <div id="showSug" hidden></div>
           </span>
-                <span id="originChips"></span>
-        </div>
+                </div>
       <section id="view-rank">
         <p class="count" id="count"></p>
         <div class="grid" id="grid"></div>
@@ -410,7 +409,6 @@ document.querySelectorAll('.side-btn').forEach(btn=>{
 });
 
 function passes(s){
-  if(F.origin!=='all'&&(s.o||'')!==F.origin) return false;
   if(F.plat!=='all'){
     if(s.provList&&s.provList.length){
       const j=s.provList.join(' ').toLowerCase();
@@ -476,7 +474,7 @@ function render(filter){
 // ====== העשרה חיה מ-TMDB ======
 const TMDB_KEY="fd37a1230832a8c38f699f082fa16110";
 let currentFilter='all';
-const F={plat:'all',score:0,year:'all',actor:'',origin:'all'};
+const F={plat:'all',score:0,year:'all',actor:''};
 
 async function enrich(s){
   try{
@@ -593,14 +591,12 @@ document.getElementById('addSearch').addEventListener('input',e=>{
   addTimer=setTimeout(async ()=>{
     try{
       const r=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}`).then(x=>x.json());
-      const res=(r.results||[])
-        .sort((a,b)=>((b.origin_country||[]).includes('KR')?1:0)-((a.origin_country||[]).includes('KR')?1:0))
-        .slice(0,10);
+      const res=(r.results||[]).filter(x=>(x.origin_country||[]).includes('KR')).slice(0,10);
       document.getElementById('addResults').innerHTML=res.map(x=>`
         <div class="arow" data-n="${(x.name||'').replace(/"/g,'&quot;')}" data-id="${x.id}" data-y="${(x.first_air_date||'').slice(0,4)}" data-p="${x.poster_path||''}">
           <div class="arp" style="${x.poster_path?`background-image:url('https://image.tmdb.org/t/p/w92${x.poster_path}')`:''}"></div>
           <span class="arn"><bdi>${x.name}</bdi></span>
-          <span class="ary">${(x.first_air_date||'').slice(0,4)} · ${ORIGIN_HE[(x.origin_country||[])[0]]||(x.origin_country||[])[0]||''}</span>
+          <span class="ary">${(x.first_air_date||'').slice(0,4)}</span>
         </div>`).join('');
       document.querySelectorAll('.arow').forEach(el=>{
         el.onclick=()=>{
@@ -722,14 +718,6 @@ const KNOWN=new Set([...shows.map(s=>s.t.toLowerCase()),
 
 const ORIGIN_HE={KR:"קוריאני",US:"אמריקאי",JP:"יפני",GB:"בריטי",CN:"סיני",TW:"טאיוואני",TH:"תאילנדי",ES:"ספרדי",FR:"צרפתי",DE:"גרמני"};
 let DISC=[];
-function buildOriginChips(){
-  const origins=[...new Set([...shows.filter(s=>!s.moved).map(s=>s.o),...DISC.map(c=>c.o)].filter(Boolean))];
-  if(origins.length<2&&F.origin==='all'){document.getElementById('originChips').innerHTML='';return;}
-  document.getElementById('originChips').innerHTML=origins.map(o=>`<button class="chip ochip" aria-pressed="${F.origin===o}" data-o="${o}">${ORIGIN_HE[o]||o}</button>`).join('');
-  document.querySelectorAll('.ochip').forEach(b=>{
-    b.onclick=()=>{F.origin=(F.origin===b.dataset.o)?'all':b.dataset.o;buildOriginChips();render(currentFilter);renderDisc();};
-  });
-}
 const FAVA=new Map(); // שחקן -> favorite (החלטה אחרונה קובעת)
 function isFav(n){return FAVA.get(n)===true;}
 function favSort(names){return [...names].sort((a,b)=>(isFav(b)?1:0)-(isFav(a)?1:0));}
@@ -746,7 +734,7 @@ const RECS=[];
 async function tmdbCard(title){
   // בונה אובייקט מלא מסדרה לפי שם (חיפוש + פרטים)
   const sr=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(title)}`).then(r=>r.json());
-  const hit=(sr.results||[]).sort((a,b)=>((b.origin_country||[]).includes('KR')?1:0)-((a.origin_country||[]).includes('KR')?1:0))[0];
+  const hit=(sr.results||[]).find(x=>(x.origin_country||[]).includes('KR'))||(sr.results||[])[0];
   if(!hit) return null;
   return await buildFull(hit);
 }
@@ -901,8 +889,7 @@ function openDetail(c){
           <div class="meta" style="margin-top:10px">
             <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}</span>
             ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
-            <span class="plat">${ORIGIN_HE[c.o]||c.o}</span>
-          </div>
+            </div>
         </div>
       </div>
     </div>
@@ -983,7 +970,7 @@ async function openActorCard(pid,name){
     const p=await fetch(`https://api.themoviedb.org/3/person/${pid}?api_key=${TMDB_KEY}&append_to_response=tv_credits`).then(r=>r.json());
     const seen=new Set([...WATCHED.map(w=>w.t.toLowerCase())]);
     const inRank=new Set(shows.filter(s=>!s.moved).map(s=>s.t.toLowerCase()));
-    const credits=[...new Map(((p.tv_credits&&p.tv_credits.cast)||[]).filter(c=>c.poster_path).map(c=>[c.id,c])).values()]
+    const credits=[...new Map(((p.tv_credits&&p.tv_credits.cast)||[]).filter(c=>c.poster_path&&(c.origin_country||[]).includes('KR')).map(c=>[c.id,c])).values()]
       .sort((a,b)=>(b.vote_count||0)-(a.vote_count||0)).slice(0,14);
     el.innerHTML=`
       <button class="dtclose" id="acClose" aria-label="סגור">✕</button>
@@ -1035,12 +1022,12 @@ function bindShowSearch(inputId,panelId){
     t=setTimeout(async ()=>{
       try{
         const r=await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}`).then(x=>x.json());
-        const res=(r.results||[]).sort((a,b)=>((b.origin_country||[]).includes('KR')?1:0)-((a.origin_country||[]).includes('KR')?1:0)).slice(0,10);
+        const res=(r.results||[]).filter(x=>(x.origin_country||[]).includes('KR')).slice(0,10);
         panel.innerHTML=res.map(x=>`
           <div class="arow srch-${inputId}" data-id="${x.id}">
             <div class="arp" style="${x.poster_path?`background-image:url('https://image.tmdb.org/t/p/w92${x.poster_path}')`:''}"></div>
             <span class="arn"><bdi>${x.name}</bdi></span>
-            <span class="ary">${(x.first_air_date||'').slice(0,4)} · ${ORIGIN_HE[(x.origin_country||[])[0]]||(x.origin_country||[])[0]||''}</span>
+            <span class="ary">${(x.first_air_date||'').slice(0,4)}</span>
           </div>`).join('');
         panel.hidden=!res.length;
         const byId=Object.fromEntries(res.map(x=>[x.id,x]));
@@ -1065,7 +1052,6 @@ function estMatch(x){
   if(g.includes(80)) m+=15;
   if(g.includes(9648)) m+=10;
   if(g.includes(18)) m+=5;
-  if((x.origin_country||[]).includes('KR')) m+=8;
   if(g.includes(35)) m-=10;
   if(g.includes(10765)) m-=15;
   if(g.includes(10759)) m-=8;
@@ -1080,8 +1066,7 @@ async function discover(){
     const pages=await Promise.all([
       fetch(`${base}&with_origin_country=KR&page=1`).then(r=>r.json()),
       fetch(`${base}&with_origin_country=KR&page=2`).then(r=>r.json()),
-      fetch(`${base}&with_origin_country=US&page=1`).then(r=>r.json()),
-      fetch(`${base}&with_origin_country=US&page=2`).then(r=>r.json())
+      fetch(`${base}&with_origin_country=KR&page=3`).then(r=>r.json())
     ]);
     const now=Date.now();
     const dedup=new Map();
@@ -1089,6 +1074,7 @@ async function discover(){
     const found=[...dedup.values()]
       .filter(x=>{
         if(!x.poster_path||KNOWN.has((x.name||"").toLowerCase())) return false;
+        if(!(x.origin_country||[]).includes('KR')) return false;
         const ageDays=(now-new Date(x.first_air_date||0).getTime())/86400000;
         const minVotes=ageDays<=92?25:100; // סדרה טרייה נכנסת כבר עם 25 מצביעים
         return (x.vote_count||0)>=minVotes;
@@ -1117,7 +1103,6 @@ async function discover(){
       return c;
     }));
     DISC=cards;
-    buildOriginChips();
     renderDisc();
     document.getElementById('discover').hidden=false;
 }
@@ -1133,7 +1118,6 @@ function renderDisc(){
           <div class="meta">
             <span class="tier t${c.m>=85?1:c.m>=72?2:3}">התאמה: ${c.m}</span>
             ${c.tm?`<span class="mdl">TMDB <b>${c.tm}</b></span>`:''}
-            <span class="plat">${c.kr?'קוריאה':'ארה"ב'}</span>
           </div>
           <p class="genres">${c.g}${c.st?` · ${c.st}`:''}</p>
           <p class="genres">${c.prov?`זמין בתאילנד: ${c.prov}`:'אין סטרימינג בתאילנד כרגע'}</p>
