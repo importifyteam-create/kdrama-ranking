@@ -1176,7 +1176,10 @@ async function refitForYou(){
     try{localStorage.setItem('krdb_foryou',JSON.stringify({
       ts:Date.now(),
       keep:shows.filter(s=>!s.moved).map(s=>({t:s.t,m:s.m,id:s.tmid||null})),
-      drop:shows.filter(s=>s.moved).map(s=>s.t)
+      drop:shows.filter(s=>s.moved).map(s=>s.t),
+      added:shows.filter(s=>s.est).map(s=>({t:s.t,y:s.y,m:s.m,o:s.o,tier:s.tier,mdl:null,plat:s.plat||'',f:[],
+        tint:s.tint,g:s.g,d:s.d,like:s.like,est:true,tm:s.tm,st:s.st,prov:s.prov,provList:s.provList,yt:s.yt,
+        poster:s.poster,tmid:s.tmid,cast:s.cast,favActors:s.favActors||null,mdlU:s.mdlU,imdbU:s.imdbU}))
     }));}catch(e){}
     st.textContent=`הרשימה עודכנה: ${removed} ירדו, ${added} נוספו`;
   }catch(e){ st.textContent='שגיאה: '+(e.message||''); }
@@ -1186,6 +1189,12 @@ function applyFitState(){
   let FIT=null;
   try{FIT=JSON.parse(localStorage.getItem('krdb_foryou')||'null');}catch(e){}
   if(!FIT||!FIT.keep) return;
+  (FIT.added||[]).forEach(a=>{
+    if(!shows.some(s=>s.t.toLowerCase()===a.t.toLowerCase())){
+      shows.push(a);
+      try{KNOWN.add(a.t.toLowerCase());}catch(e){}
+    }
+  });
   const byT=Object.fromEntries(FIT.keep.map(k=>[k.t.toLowerCase(),k]));
   (FIT.drop||[]).forEach(t=>{shows.forEach(s=>{if(s.t.toLowerCase()===t.toLowerCase())s.moved=true;});});
   shows.forEach(s=>{const k=byT[s.t.toLowerCase()]; if(k){s.m=k.m;s.curated=false;if(k.id)s.tmid=k.id;}});
