@@ -1471,9 +1471,13 @@ function renderFavShows(){
 }
 function renderFavActors(){
   const names=favActorNames();
-  const el=document.getElementById('favActors');
-  if(!names.length){el.innerHTML='<span class="fbnote">עדיין לא סימנת שחקנים בכוכב</span>';return;}
-  el.innerHTML=names.map(n=>{
+  updateRecsCount();
+  const na=document.getElementById('nActors'); if(na) na.textContent=names.length?`(${names.length})`:'';
+  const strip=document.getElementById('actorsStrip'); if(strip) strip.hidden=!names.length;
+  const targets=[document.getElementById('favActors'),document.getElementById('favActorsHome')].filter(Boolean);
+  if(!targets.length) return;
+  if(!names.length){targets.forEach(t=>{t.innerHTML='<span class="fbnote">עדיין לא סימנת שחקנים בכוכב</span>';});return;}
+  const html=names.map(n=>{
     const info=FAVP.get(n)||{};
     return `
     <div class="casttile">
