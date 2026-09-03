@@ -239,6 +239,7 @@
       <button class="side-btn" data-v="rank" aria-current="true">בית <span class="n" id="nRank"></span></button>
       <button class="side-btn" data-jump="freshStrip">חדש ורלוונטי</button>
       <button class="side-btn" data-jump="socialStrip">הצעות חברתיות <span class="n" id="nRecs"></span></button>
+      <button class="side-btn" data-jump="actorsSec">שחקנים מועדפים <span class="n" id="nActors"></span></button>
       <button class="side-btn" data-jump="forYouSec">בשבילך <span class="n" id="nForYou"></span></button>
       <button class="side-btn" data-v="watched" aria-current="false">ראיתי <span class="n" id="nWatched"></span></button>
       <button class="side-btn" data-v="disc" aria-current="false">חדשים</button>
@@ -270,6 +271,10 @@
         <div id="socialStrip">
           <div class="secttl" style="margin-top:30px">הצעות חברתיות</div>
           <div class="castgrid" id="recGrid"></div>
+        </div>
+        <div id="actorsStrip" hidden>
+          <div class="secttl" id="actorsSec" style="margin-top:30px">שחקנים מועדפים</div>
+          <div class="castgrid" id="favActorsHome"></div>
         </div>
         <div class="secttl" id="forYouSec" style="margin-top:30px">בשבילך</div>
         <p class="count" id="count"></p>
@@ -1476,8 +1481,11 @@ function renderFavActors(){
       <div class="cph favact" data-n="${n.replace(/"/g,'&quot;')}" data-pid="${info.id||''}" ${info.p?`style="background-image:url('https://image.tmdb.org/t/p/w342${info.p}')"`:''}>${info.p?'':`<span class="phinit">${n.split(' ').map(w=>w[0]).join('').slice(0,2)}</span>`}</div>
       <div class="cnm favact" data-n="${n.replace(/"/g,'&quot;')}" data-pid="${info.id||''}">★ <bdi>${n}</bdi></div>
     </div>`;}).join('');
-  el.querySelectorAll('.star').forEach(b=>{b.onclick=async ()=>{await toggleFav(b.dataset.a,b);renderFavActors();};});
-  el.querySelectorAll('.favact').forEach(a=>{a.onclick=()=>{if(a.dataset.pid)openActorCard(+a.dataset.pid,a.dataset.n);};});
+  targets.forEach(el=>{
+    el.innerHTML=html;
+    el.querySelectorAll('.star').forEach(b=>{b.onclick=async ()=>{await toggleFav(b.dataset.a,b);renderFavActors();};});
+    el.querySelectorAll('.favact').forEach(a=>{a.onclick=()=>{if(a.dataset.pid)openActorCard(+a.dataset.pid,a.dataset.n);};});
+  });
 }
 function updateRecsCount(){
   try{
