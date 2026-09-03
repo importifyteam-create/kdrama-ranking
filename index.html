@@ -1461,8 +1461,12 @@ function renderFavActors(){
   el.querySelectorAll('.favact').forEach(a=>{a.onclick=()=>{if(a.dataset.pid)openActorCard(+a.dataset.pid,a.dataset.n);};});
 }
 function updateRecsCount(){
-  const el=document.getElementById('nRecs'); if(el) el.textContent=RECS.length?`(${RECS.length})`:'';
-  const f=document.getElementById('nForYou'); if(f) f.textContent=`(${shows.filter(s=>!s.moved).length})`;
+  try{
+    const el=document.getElementById('nRecs');
+    if(el&&typeof RECS!=='undefined') el.textContent=RECS.length?`(${RECS.length})`:'';
+    const f=document.getElementById('nForYou');
+    if(f&&typeof shows!=='undefined') f.textContent=`(${shows.filter(s=>!s.moved).length})`;
+  }catch(e){}
 }
 function renderRecs(){
   updateRecsCount();
