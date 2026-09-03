@@ -1637,16 +1637,16 @@ async function loadGallupActors(){
 }
 function renderGallupActors(){
   const el=document.getElementById('gallupActors'); if(!el) return;
-  const list=GALLUP.filter(a=>!isFav(a.n)&&!isFav((MDLPHOTO['g:'+a.n]||{}).tn||''));
+  const list=GALLUP;
   el.innerHTML=list.map(a=>{
-    const ph=MDLPHOTO['g:'+a.n]||{}; const tn=ph.tn||a.n;
+    const ph=MDLPHOTO['g:'+a.n]||{}; const tn=ph.tn||a.n; const fav=isFav(a.n)||isFav(tn);
     const yrs=[a.p25?`2025: ${a.p25}%`:null,a.p24?`2024: ${a.p24}%`:null].filter(Boolean).join(' · ');
     return `
     <div class="casttile">
       <span class="rankbadge">#${a.r}</span>
-      <button class="star" data-a="${tn.replace(/"/g,'')}" title="הוסף למועדפים">★</button>
+      <button class="star ${fav?'on':''}" data-a="${tn.replace(/"/g,'')}" title="${fav?'הסר מהמועדפים':'הוסף למועדפים'}">★</button>
       <div class="cph popact" data-n="${tn.replace(/"/g,'&quot;')}" data-pid="${ph.id||''}" ${ph.p?`style="background-image:url('https://image.tmdb.org/t/p/w342${ph.p}')"`:''}>${ph.p?'':`<span class="phinit">${a.n.split(' ').map(w=>w[0]).join('').slice(0,2)}</span>`}</div>
-      <div class="cnm popact" data-n="${tn.replace(/"/g,'&quot;')}" data-pid="${ph.id||''}"><bdi>${a.n}</bdi></div>
+      <div class="cnm popact" data-n="${tn.replace(/"/g,'&quot;')}" data-pid="${ph.id||''}">${fav?'★ ':''}<bdi>${a.n}</bdi></div>
       <div class="crl">${yrs}</div>
     </div>`;}).join('');
   el.querySelectorAll('.star').forEach(b=>{b.onclick=async ()=>{await toggleFav(b.dataset.a,b);renderGallupActors();renderPopularActors();renderFavActors();};});
@@ -1705,6 +1705,7 @@ function renderFavActors(){
     const info=FAVP.get(n)||{};
     return `
     <div class="casttile">
+      ${(()=>{const g=gallupFor(n);const m=mdlRankFor(n);return g?`<span class="rankbadge" title="Gallup Korea">G #${g.r}</span>`:m?`<span class="rankbadge" title="MyDramaList">MDL #${m.r}</span>`:'';})()}
       <button class="star on" data-a="${n.replace(/"/g,'')}" title="הסר מהמועדפים">★</button>
       <div class="cph favact" data-n="${n.replace(/"/g,'&quot;')}" data-pid="${info.id||''}" ${info.p?`style="background-image:url('https://image.tmdb.org/t/p/w342${info.p}')"`:''}>${info.p?'':`<span class="phinit">${n.split(' ').map(w=>w[0]).join('').slice(0,2)}</span>`}</div>
       <div class="cnm favact" data-n="${n.replace(/"/g,'&quot;')}" data-pid="${info.id||''}">★ <bdi>${n}</bdi></div>
