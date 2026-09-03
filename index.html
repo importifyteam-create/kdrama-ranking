@@ -429,6 +429,15 @@
 </div>
 
 <script>
+const BUILD=1788455651;
+// בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
+(async()=>{
+  try{
+    const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});
+    const v=await r.json();
+    if(v&&v.build>BUILD&&!location.search.includes('v='+v.build)) location.replace(location.pathname+'?v='+v.build);
+  }catch(e){}
+})();
 window.addEventListener('error',e=>{try{const d=document.getElementById('dataLine');if(d)d.textContent='שגיאת דף: '+e.message;}catch(_){}});
 const shows=[
  {t:"The Glory",m:96,o:"KR",y:2022,tier:1,mdl:"8.9",plat:"Netflix",f:["netflix"],tint:"var(--tint-revenge)",g:"מתח פסיכולוגי · נקמה · דרמה",d:"נקמה מתוכננת 18 שנה בבריוני בית ספר ובכל מי שעמד מנגד. נבלים בלתי נשכחים וסוף שבו כולם משלמים.",like:["As You Stood By","Teach You a Lesson"],mdlU:"https://mydramalist.com/685237-the-glory",imdbU:"https://www.imdb.com/title/tt21344706/"},
