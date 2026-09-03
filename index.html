@@ -1874,9 +1874,10 @@ async function discover(){
     renderDisc();
     document.getElementById('discover').hidden=false;
 }
+function effMatch(c){return AICACHE[c.id]?AICACHE[c.id].match:(c.m||0);}
 function renderFresh(){
   const el=document.getElementById('freshGrid'); if(!el) return;
-  const top=DISC.filter(passes).slice(0,6);
+  const top=DISC.filter(passes).sort((a,b)=>effMatch(b)-effMatch(a)).slice(0,6);
   document.getElementById('freshStrip').hidden=!top.length;
   el.innerHTML=top.map(c=>`
     <div class="casttile fclick" data-id="${c.id}">
@@ -1905,7 +1906,7 @@ async function aiScoreAll(){
 function renderDisc(){
   renderFresh();
     if(!DISC.length) return;
-    const cards=DISC.filter(passes);
+    const cards=DISC.filter(passes).sort((a,b)=>effMatch(b)-effMatch(a));
     document.getElementById('discGrid').innerHTML=cards.map(c=>`
       <article class="card">
         <div class="poster dclick" data-id="${c.id}" style="background:linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${c.poster}') center 20%/cover no-repeat">
