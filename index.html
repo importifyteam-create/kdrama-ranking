@@ -1577,17 +1577,30 @@ let POPACT=[];
 async function loadPopularActors(){
   const el=document.getElementById('popActors'); if(!el||!TMDB_KEY) return;
   if(!POPACT.length){
+    // מטמון ליום אחד
+    try{const c=JSON.parse(localStorage.getItem('krdb_popact')||'null'); if(c&&c.ts&&Date.now()-c.ts<86400000&&Array.isArray(c.list)&&c.list.length){POPACT=c.list;}}catch(e){}
+  }
+  if(!POPACT.length){
+    el.innerHTML='<span class="fbnote">טוען...</span>';
     try{
-      const pages=await Promise.all([1,2,3,4].map(p=>fetch(`https://api.themoviedb.org/3/person/popular?api_key=${TMDB_KEY}&page=${p}`).then(r=>r.json()).catch(()=>({}))));
-      const seen=new Set();
-      pages.flatMap(p=>p.results||[]).forEach(p=>{
-        if(!p.profile_path||seen.has(p.id)) return;
-        const kr=(p.known_for||[]).some(k=>(k.origin_country||[]).includes('KR')&&k.media_type==='tv');
-        if(!kr) return;
-        seen.add(p.id);
-        POPACT.push({id:p.id,name:p.name,p:p.profile_path,pop:p.popularity||0,known:(p.known_for||[]).map(k=>k.name||k.title).filter(Boolean).slice(0,2)});
+      // 1. הסדרות הקוריאניות הפופולריות כרגע
+      const pages=await Promise.all([1,2].map(p=>fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&with_origin_country=KR&sort_by=popularity.desc&vote_count.gte=20&page=${p}`).then(r=>r.json()).catch(()=>({}))));
+      const shows=pages.flatMap(p=>p.results||[]).filter(x=>(x.origin_country||[]).includes('KR')).slice(0,24);
+      // 2. הקאסט של כל אחת, ניקוד לפי הפופולריות של הסדרה
+      const acc=new Map();
+      const creds=await Promise.all(shows.map(s=>fetch(`https://api.themoviedb.org/3/tv/${s.id}/aggregate_credits?api_key=${TMDB_KEY}`).then(r=>r.json()).catch(()=>({}))));
+      creds.forEach((cr,i)=>{
+        const s=shows[i];
+        ((cr.cast)||[]).slice(0,6).forEach(a=>{
+          if(!a.profile_path) return;
+          const e=acc.get(a.id)||{id:a.id,name:a.name,p:a.profile_path,pop:0,known:[]};
+          e.pop+=(s.popularity||1);
+          if(e.known.length<2&&!e.known.includes(s.name)) e.known.push(s.name);
+          acc.set(a.id,e);
+        });
       });
-      POPACT.sort((a,b)=>b.pop-a.pop);
+      POPACT=[...acc.values()].sort((a,b)=>b.pop-a.pop).slice(0,40);
+      try{localStorage.setItem('krdb_popact',JSON.stringify({ts:Date.now(),list:POPACT}));}catch(e){}
     }catch(e){}
   }
   renderPopularActors();
