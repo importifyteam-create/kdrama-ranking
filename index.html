@@ -448,7 +448,7 @@
 </div>
 
 <script>
-const BUILD=1788560836;
+const BUILD=1788563106;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1903,7 +1903,7 @@ function openDetail(c){
         }
         if(!brk) return '';
         const P=brk.parts;
-        return `<div class="brk"><div class="secttl" style="font-size:1.05rem;margin:14px 0 6px">איך נבנה הציון</div>
+        return `<div class="brk"><div class="secttl sechead" style="font-size:1.05rem;margin:14px 0 6px">איך נבנה הציון <button class="more" id="dtRecalc">${P?'חשב מחדש':'חשב מחדש עם פירוק'}</button></div>
           ${P?[bar('ריאליזם',P.realism,20),bar('עלילה ורגש',P.depth,20),bar('ז\'אנר',P.genre,20),bar('טון',P.tone,20),bar('אורך ועדכניות',P.format,20)].join(''):`<div class="brow"><span class="blbl">ציון AI</span><span class="bbar"><span style="width:${brk.ai}%"></span></span><span class="bval">${brk.ai}</span></div>`}
           ${brk.fav&&brk.fav.bonus?`<div class="brow bonus"><span class="blbl">שחקנים מועדפים</span><span class="bnote"><bdi>${brk.fav.names.join(', ')}</bdi></span><span class="bval">+${brk.fav.bonus}</span></div>`:''}
           ${brk.gallup&&brk.gallup.bonus?`<div class="brow bonus"><span class="blbl">בולטי Gallup</span><span class="bnote"><bdi>${brk.gallup.names.join(', ')}</bdi></span><span class="bval">+${brk.gallup.bonus}</span></div>`:''}
@@ -1957,8 +1957,9 @@ function openDetail(c){
         openDetail(c); // הכרטיס נבנה מחדש עם הפירוק
       }catch(e){ aiBtn.textContent='שגיאה, בדוק את המפתח בהגדרות'; aiBtn.disabled=false; }
     };
-    if(cached){ show(cached); aiBtn.textContent=cached.parts?'חשב מחדש':'חשב מחדש עם פירוק'; aiBtn.classList.add('tagmore'); box.insertAdjacentElement('afterbegin',aiBtn); aiBtn.onclick=run; }
+    if(cached){ show(cached); aiBtn.remove(); }
     else aiBtn.onclick=run;
+    const rc=document.getElementById('dtRecalc'); if(rc) rc.onclick=async ()=>{ rc.disabled=true; rc.textContent='מחשב...'; await run(); };
   }
   const sn=document.getElementById('dtSeen');
   if(sn) sn.onclick=async ()=>{
