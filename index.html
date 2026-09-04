@@ -435,7 +435,7 @@
 </div>
 
 <script>
-const BUILD=1788489934;
+const BUILD=1788489985;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1691,7 +1691,12 @@ function renderPopularActors(){
   el.querySelectorAll('.star').forEach(b=>{b.onclick=async ()=>{await toggleFav(b.dataset.a,b);renderPopularActors();renderFavActors();};});
   el.querySelectorAll('.popact').forEach(a=>{a.onclick=()=>{if(a.dataset.pid)openActorCard(+a.dataset.pid,a.dataset.n);};});
 }
-function favActorNames(){return [...FAVA.entries()].filter(([n,v])=>v).map(([n])=>n);}
+function favActorNames(){
+  // מיון לפי פופולריות: Gallup קודם (לפי מקום), אחר כך MDL (לפי מקום), ובסוף השאר לפי סדר הסימון
+  const names=[...FAVA.entries()].filter(([n,v])=>v).map(([n])=>n);
+  const key=n=>{const g=gallupFor(n); if(g) return [0,g.r]; const m=mdlRankFor(n); if(m) return [1,m.r]; return [2,0];};
+  return names.map((n,i)=>({n,k:key(n),i})).sort((a,b)=>a.k[0]-b.k[0]||a.k[1]-b.k[1]||a.i-b.i).map(x=>x.n);
+}
 function ratingNum(r){
   r=(r||'').trim();
   const n=parseInt(r); if(!isNaN(n)) return n;
