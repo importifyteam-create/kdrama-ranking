@@ -262,9 +262,7 @@
       <button class="side-btn" data-jump="freshStrip">חדש ורלוונטי</button>
       <button class="side-btn" data-jump="socialStrip">הצעות חברתיות <span class="n" id="nRecs"></span></button>
       <button class="side-btn" data-jump="actorsSec">שחקנים מועדפים <span class="n" id="nActors"></span></button>
-      <button class="side-btn" data-jump="forYouSec">בשבילך <span class="n" id="nForYou"></span></button>
       <button class="side-btn" data-v="watched" aria-current="false">ראיתי <span class="n" id="nWatched"></span></button>
-      <button class="side-btn" data-v="disc" aria-current="false">חדשים</button>
       <button class="side-btn" data-v="settings" aria-current="false">הגדרות</button>
     </nav>
     <main>
@@ -437,7 +435,7 @@
 </div>
 
 <script>
-const BUILD=1788489772;
+const BUILD=1788489934;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -592,11 +590,11 @@ async function enrichWatched(){
   if(fy) fy.onclick=()=>{FORYOU_LIMIT+=20;render(currentFilter);};
   const am=document.getElementById('actorsMore');
   if(am) am.onclick=()=>{
-    const s=[...document.querySelectorAll('.side-btn')].find(x=>x.dataset.v==='settings'); if(s) s.click();
+    showView('settings');
     const t=[...document.querySelectorAll('.tabbtn')].find(x=>x.dataset.t==='actors'); if(t) t.click();
   };
   const fm=document.getElementById('freshMore');
-  if(fm) fm.onclick=()=>{const b=[...document.querySelectorAll('.side-btn')].find(x=>x.dataset.v==='disc'); if(b) b.click();};
+  if(fm) fm.onclick=()=>showView('disc');
 })();
 (function(){const b=document.getElementById('aiScoreAll'); if(b) b.onclick=aiScoreAll;})();
 (function(){const b=document.getElementById('refitBtn'); if(b) b.onclick=refitForYou;})();
@@ -613,24 +611,22 @@ document.querySelectorAll('.tabbtn').forEach(b=>{
 });
 document.querySelectorAll('.side-btn[data-jump]').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    const home=[...document.querySelectorAll('.side-btn')].find(b=>b.dataset.v==='rank');
-    if(home) home.click();
+    showView('rank');
     const t=document.getElementById(btn.dataset.jump);
     if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
   });
 });
+function showView(v){
+  document.querySelectorAll('.side-btn').forEach(b=>b.setAttribute('aria-current',b.dataset.v===v?'true':'false'));
+  document.getElementById('toolbar').hidden=(v!=='rank');
+  document.getElementById('view-rank').hidden=v!=='rank';
+  document.getElementById('view-watched').hidden=v!=='watched';
+  document.getElementById('view-disc').hidden=v!=='disc';
+  document.getElementById('view-settings').hidden=v!=='settings';
+  window.scrollTo({top:0});
+}
 document.querySelectorAll('.side-btn[data-v]').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.side-btn').forEach(b=>b.setAttribute('aria-current','false'));
-    btn.setAttribute('aria-current','true');
-    const v=btn.dataset.v;
-
-    document.getElementById('toolbar').hidden=(v!=='rank');
-    document.getElementById('view-rank').hidden=v!=='rank';
-    document.getElementById('view-watched').hidden=v!=='watched';
-    document.getElementById('view-disc').hidden=v!=='disc';
-    document.getElementById('view-settings').hidden=v!=='settings';
-  });
+  btn.addEventListener('click',()=>showView(btn.dataset.v));
 });
 
 function passes(s){
