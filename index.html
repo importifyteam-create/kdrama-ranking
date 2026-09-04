@@ -113,6 +113,7 @@
   .phinit{font-family:'Frank Ruhl Libre',serif;font-size:1.6rem;color:var(--muted)}
   .casttile .cnm{direction:ltr;text-align:left;font-size:.92rem;font-weight:500;margin-top:8px;line-height:1.25}
   .casttile .crl{direction:ltr;text-align:left;font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mbadge{position:absolute;top:10px;inset-inline-end:12px;color:#d9a441;font-weight:700;font-size:.95rem;letter-spacing:.02em;text-shadow:0 1px 6px rgba(0,0,0,.9);direction:ltr}
   .rankbadge{position:absolute;top:6px;inset-inline-end:6px;background:rgba(14,16,21,.8);color:var(--fg);font-size:.8rem;font-weight:600;padding:4px 8px;border-radius:999px;z-index:1}
   .casttile .star{position:absolute;top:6px;left:6px;background:rgba(14,16,21,.72);border-radius:50%;min-width:38px;min-height:38px;padding:0}
   .tsum{color:var(--muted);font-size:.9rem;line-height:1.6;margin:14px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -435,7 +436,7 @@
 </div>
 
 <script>
-const BUILD=1788489985;
+const BUILD=1788490218;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -660,6 +661,7 @@ function render(filter){
   grid.innerHTML=list.map(s=>`
     <article class="card${s.r===1?' top':''}">
       <div class="poster pclick" data-si="${shows.indexOf(s)}" style="background:${s.poster?`linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${s.poster}') center 20%/cover no-repeat`:`linear-gradient(160deg,${s.tint},#101218 85%)`}">
+        <span class="mbadge">M: ${s.m}</span>
         <span class="rank" aria-hidden="true">${s.r}</span>
         <div class="ttl"><bdi>${s.t}</bdi><span class="yr">${s.y}</span></div>
       </div>
