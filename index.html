@@ -135,6 +135,7 @@
   .tastefld textarea{width:100%;max-width:760px;background:var(--surface);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:inherit;font-size:.95rem;line-height:1.6;min-height:96px;resize:vertical}
   .tastefld textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .aibox{max-width:640px}
+  .dtdesc{font-size:1.02rem;line-height:1.65;max-width:70ch;margin-top:4px}
   .aiwhy{font-size:.98rem;line-height:1.6;margin-top:6px}
   .secttl{font-family:'Frank Ruhl Libre',serif;font-weight:800;font-size:1.3rem;margin-top:10px}
   .filmgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:18px;margin-top:8px}
@@ -429,7 +430,7 @@
 </div>
 
 <script>
-const BUILD=1788455651;
+const BUILD=1788480389;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -658,7 +659,6 @@ function render(filter){
         </div>
         <p class="genres">${s.g}${s.st?` · ${s.st}`:''}</p>
         <p class="genres">${s.prov?`זמין בתאילנד: ${s.prov}`:(s.tm?`אין סטרימינג בתאילנד כרגע · ${s.plat}`:s.plat)}</p>
-        <p class="desc">${s.d}</p>
         <p class="like">${s.favActors?`<bdi>${s.favActors.join(', ')}</bdi> ${'· שחקן מועדף'}`:`בסגנון של ${s.like.map(x=>`<bdi>${x}</bdi>`).join(' + ')}`}</p>
         ${s.note?`<p class="note">${s.note}</p>`:''}
         <div class="links">
@@ -1824,6 +1824,13 @@ function openDetail(c){
     <div class="dtwrap">
       <p class="genres" style="font-size:1rem">${c.g}${c.st?` · ${c.st}`:''}</p>
       <p class="genres" style="font-size:1rem">${c.prov?`זמין בתאילנד: ${c.prov}`:'אין סטרימינג בתאילנד כרגע'}</p>
+      ${(()=>{
+        const s=shows.find(x=>x.t.toLowerCase()===c.t.toLowerCase());
+        if(s&&s.d&&!s.est) return `<p class="dtdesc">${s.d}</p>`;
+        const a=AICACHE[c.id];
+        if(a&&a.why&&(a.lang||'he')===LANG) return `<p class="dtdesc" translate="no">${a.why}</p>`;
+        return '';
+      })()}
       ${(!c.curated&&OAI.key)?`<div id="aiBox" class="aibox"><button class="fbcancel" id="aiBtn">חשב התאמה עם AI</button></div>`:''}
       <div class="links" style="max-width:560px">
         <a href="https://www.themoviedb.org/tv/${c.id}" target="_blank" rel="noopener">TMDB</a>
@@ -1856,7 +1863,7 @@ function openDetail(c){
   const aiBtn=document.getElementById('aiBtn');
   if(aiBtn){
     const box=document.getElementById('aiBox');
-    const show=v=>{box.innerHTML=`<div class="meta"><span class="tier t${v.match>=85?1:v.match>=72?2:3}">AI · התאמה: ${v.match}</span></div><p class="aiwhy">${v.why}</p>`;};
+    const show=v=>{box.innerHTML=`<div class="meta"><span class="tier t${v.match>=85?1:v.match>=72?2:3}">AI · התאמה: ${v.match}</span></div>${(v.lang||'he')===LANG?`<p class="aiwhy" translate="no">${v.why}</p>`:''}`;};
     if(AICACHE[c.id]) show(AICACHE[c.id]);
     else aiBtn.onclick=async ()=>{aiBtn.disabled=true;aiBtn.textContent='מחשב...';try{show(await aiMatch(c));}catch(e){aiBtn.textContent='שגיאה, בדוק את המפתח בהגדרות';aiBtn.disabled=false;}};
   }
@@ -1921,7 +1928,7 @@ async function aiMatch(c){
   const sys="You score how well a Korean drama fits ONE specific viewer. Return JSON only: {\"match\": integer 0-100, \"why\": string (2 sentences, in "+(LANG==='en'?'English':'Hebrew')+")}. Be strict: realism and emotional depth matter more than genre keywords. Never exceed 90 unless it is an obvious perfect fit.";
   const user=`Viewer profile\nBaseline: ${t.base}\nGenres he likes: ${t.pos.join(', ')||'not set'}\nGenres he avoids: ${t.neg.join(', ')||'not set'}\n${t.extra||''}\nRated so far: ${t.rated.join('; ')}\nNotes: ${t.notes||'-'}\n\nCandidate\nTitle: ${c.t} (${c.y})\nGenres: ${c.g}\nStatus: ${c.st||''}\nTMDB score: ${c.tm||'?'}\nCast: ${(c.cast||[]).slice(0,6).join(', ')}\nOverview: ${c.overview||'-'}`;
   const out=await oaiCall([{role:'system',content:sys},{role:'user',content:user}],400);
-  const v={match:Math.max(0,Math.min(100,parseInt(out.match)||0)),why:String(out.why||'')};
+  const v={match:Math.max(0,Math.min(100,parseInt(out.match)||0)),why:String(out.why||''),lang:LANG};
   aiCacheSet(c.id,v);
   return v;
 }
