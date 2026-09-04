@@ -450,7 +450,7 @@
 </div>
 
 <script>
-const BUILD=1788563257;
+const BUILD=1788563326;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1194,12 +1194,12 @@ function tooLong(episodes){
   return lim>0&&episodes&&episodes>lim;
 }
 function genreAdjust(genreIds){
-  const liked=prefTmdbIds('like'), av=prefTmdbIds('avoid');
+  // התאמה חיובית לז'אנר היא באחריות ה-AI (שקורא את התקציר). המיפוי הגס של TMDB
+  // משמש רק לקנס על ז'אנר "להימנע"; אין קנס על "לא נוגע בז'אנר אהוב", כי TMDB
+  // לא מכיר משפטי, נקמה, ריגול ועוד, וזה יצר קנסות שגויים.
+  const av=prefTmdbIds('avoid');
   const ids=genreIds||[];
-  let adj=0;
-  if(av.size&&ids.some(i=>av.has(i))) adj-=25;
-  if(liked.size&&!ids.some(i=>liked.has(i))) adj-=10; // רק אם יש ז'אנרים אהובים שניתן למפות
-  return adj;
+  return (av.size&&ids.some(i=>av.has(i)))?-25:0;
 }
 async function buildActorCands(){
   ACTORCANDS.length=0;
