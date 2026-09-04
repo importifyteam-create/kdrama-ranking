@@ -447,7 +447,7 @@
 </div>
 
 <script>
-const BUILD=1788494247;
+const BUILD=1788494523;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1558,11 +1558,12 @@ async function buildFullById(id,preset){
   try{
     const d=await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${TMDB_KEY}&append_to_response=videos,watch%2Fproviders,external_ids,aggregate_credits`).then(r=>r.json());
     const gids=(d.genres||[]).map(g=>g.id);
+    // (genre ids kept on the card for the breakdown)
     const x={name:d.name,first_air_date:d.first_air_date,vote_average:d.vote_average,poster_path:d.poster_path,id:d.id,genre_ids:gids,origin_country:d.origin_country||[]};
     const c={t:d.name,y:(d.first_air_date||"").slice(0,4),m:(preset.m!=null?preset.m:estMatch(x)),curated:!!preset.curated,
       tm:d.vote_average?d.vote_average.toFixed(1):null,poster:d.poster_path?`https://image.tmdb.org/t/p/w500${d.poster_path}`:null,backdrop:d.backdrop_path?`https://image.tmdb.org/t/p/w1280${d.backdrop_path}`:null,id:d.id,f:[],
       g:gids.map(i=>GENRE_HE[i]).filter(Boolean).join(' · ')||'—',
-      o:(d.origin_country||[]).includes('KR')?'KR':((d.origin_country||[])[0]||'US'),overview:d.overview||''};
+      o:(d.origin_country||[]).includes('KR')?'KR':((d.origin_country||[])[0]||'US'),overview:d.overview||'',genre_ids:gids};
     const stMap={"Ended":"הסתיימה","Returning Series":"עדיין משודרת","Canceled":"בוטלה","In Production":"בהפקה"};
     c.st=`${stMap[d.status]||d.status||""}${d.number_of_seasons>1?` · ${d.number_of_seasons} עונות`:""} · ${d.number_of_episodes} פרקים`;
     const th=d["watch/providers"]&&d["watch/providers"].results&&d["watch/providers"].results.TH;
@@ -1866,7 +1867,7 @@ function openDetail(c){
       <div class="heroshade"></div>
       <div class="heroin">
         <div class="heroposter" style="${c.poster?`background-image:url('${c.poster}')`:''}">
-          ${(c.curated||AICACHE[c.id])?`<span class="mbadge" title="התאמה">${c.curated?c.m:AICACHE[c.id].match}</span>`:''}
+          ${(c.curated||AICACHE[c.id])?`<span class="mbadge" title="התאמה">${c.curated?c.m:(()=>{const a=AICACHE[c.id];const s=shows.find(x=>x.t.toLowerCase()===c.t.toLowerCase());if(s&&s.brk)return s.brk.final;const B=bonusesFor(c.cast||[]);const ga=c.genre_ids?genreAdjust(c.genre_ids):0;return Math.max(0,Math.min(98,a.match+B.fav.bonus+B.gallup.bonus+ga));})()}</span>`:''}
         </div>
         <div>
           <div class="herotitle"><bdi>${c.t}</bdi><span class="heroyr">${c.y}</span></div>
@@ -1883,7 +1884,9 @@ function openDetail(c){
       ${(()=>{
         const s=shows.find(x=>x.t.toLowerCase()===c.t.toLowerCase());
         const bar=(lbl,v,max)=>`<div class="brow"><span class="blbl">${lbl}</span><span class="bbar"><span style="width:${Math.round(100*v/max)}%"></span></span><span class="bval">${v}</span></div>`;
-        const a=AICACHE[c.id]; const brk=(s&&s.brk)||(a?{ai:a.match,parts:a.parts||null,gallup:{bonus:0,names:[]},fav:{bonus:0,names:[]},genre:0,final:a.match}:null);
+        const a=AICACHE[c.id];
+        let brk=(s&&s.brk)||null;
+        if(!brk&&a){ const B=bonusesFor(c.cast||[]); const ga=c.genre_ids?genreAdjust(c.genre_ids):0; brk={ai:a.match,parts:a.parts||null,gallup:B.gallup,fav:B.fav,genre:ga,final:Math.max(0,Math.min(98,a.match+B.fav.bonus+B.gallup.bonus+ga))}; }
         if(s&&s.curated!==false&&!s.est&&s.d){
           return `<p class="dtdesc">${s.d}</p><div class="brk"><div class="secttl" style="font-size:1.05rem;margin:14px 0 6px">איך נבנה הציון</div><p class="hint">ציון ${s.m} נקבע ידנית על ידי קלוד לפי הפרופיל המלא שלך, לא בחישוב אוטומטי. הנימוק הוא התיאור למעלה.</p></div>`;
         }
