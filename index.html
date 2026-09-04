@@ -139,6 +139,8 @@
   .aibox{max-width:640px}
   .dtdesc{font-size:1.02rem;line-height:1.65;max-width:70ch;margin-top:4px}
   .aiwhy{font-size:.98rem;line-height:1.6;margin-top:6px}
+  .castrow{display:flex;gap:16px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+  .castrow .casttile{flex:0 0 130px}
   .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
   .more{font-family:inherit;font-size:.9rem;color:var(--muted);background:none;border:1px solid var(--border);border-radius:999px;padding:6px 14px;cursor:pointer;min-height:36px}
   .more:hover{color:var(--fg);border-color:var(--fg)}
@@ -294,7 +296,7 @@
         </div>
         <div id="actorsStrip" hidden>
           <div class="secttl sechead" id="actorsSec" style="margin-top:30px">שחקנים מועדפים <button class="more" id="actorsMore">טען עוד</button></div>
-          <div class="castgrid" id="favActorsHome"></div>
+          <div class="castrow" id="favActorsHome"></div>
         </div>
         <div class="secttl" id="forYouSec" style="margin-top:30px">בשבילך</div>
         <p class="count" id="count"></p>
@@ -435,7 +437,7 @@
 </div>
 
 <script>
-const BUILD=1788489554;
+const BUILD=1788489756;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -586,6 +588,8 @@ async function enrichWatched(){
 
 // ====== ניווט בין אזורים ======
 (function(){
+  const fy=document.getElementById('forYouMore');
+  if(fy) fy.onclick=()=>{FORYOU_LIMIT+=20;render(currentFilter);};
   const am=document.getElementById('actorsMore');
   if(am) am.onclick=()=>{
     const s=[...document.querySelectorAll('.side-btn')].find(x=>x.dataset.v==='settings'); if(s) s.click();
@@ -652,7 +656,10 @@ function passes(s){
   return true;
 }
 function render(filter){
-  const list=shows.filter(s=>!s.moved&&passes(s));
+  const all=shows.filter(s=>!s.moved&&passes(s));
+  const list=all.slice(0,FORYOU_LIMIT);
+  const moreBtn=document.getElementById('forYouMore');
+  if(moreBtn){ moreBtn.hidden=all.length<=FORYOU_LIMIT; moreBtn.textContent=`טען עוד (${Math.max(0,all.length-FORYOU_LIMIT)})`; }
   const total=shows.filter(s=>!s.moved).length;
   grid.innerHTML=list.map(s=>`
     <article class="card${s.r===1?' top':''}">
@@ -695,6 +702,7 @@ function render(filter){
 // ====== העשרה חיה מ-TMDB ======
 const TMDB_KEY="fd37a1230832a8c38f699f082fa16110";
 let currentFilter='all';
+let FORYOU_LIMIT=20;
 const F={plat:'all',score:0,year:'all',actor:''};
 
 async function enrich(s){
