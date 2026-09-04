@@ -436,7 +436,7 @@
 </div>
 
 <script>
-const BUILD=1788490218;
+const BUILD=1788490235;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -667,7 +667,6 @@ function render(filter){
       </div>
       <div class="body">
         <div class="meta">
-          <span class="tier t${s.m>=85?1:s.m>=72?2:3}">מקום ${s.r} · התאמה: ${s.m}</span>
           ${s.mdl?`<span class="mdl">MDL <b>${s.mdl}</b></span>`:``}
           ${s.tm?`<span class="mdl">TMDB <b>${s.tm}</b></span>`:``}
           ${!s.mdl&&!s.tm?`<span class="mdl plat">ציון MDL בקישור</span>`:``}
