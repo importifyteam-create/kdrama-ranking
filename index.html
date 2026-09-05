@@ -457,7 +457,7 @@
 </div>
 
 <script>
-const BUILD=1788585644;
+const BUILD=1788586048;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1177,7 +1177,8 @@ async function refreshSocial(opts){
     const snapAt=data.fetched_at?new Date(data.fetched_at):null;
     // Auto mode (on every page load): only work when the host published a newer snapshot than the one
     // already folded into SOCIAL. AI scores are cached per TMDB id, so a new snapshot costs only its new titles.
-    if(opts.auto&&SOCIAL.snap&&data.fetched_at===SOCIAL.snap){ if(btn) btn.disabled=false; return; }
+    const stale=SOCIAL.items.some(i=>!(AICACHE[i.id]&&AICACHE[i.id].ver===AI_VER)); // engine version bumped → re-score
+    if(opts.auto&&!stale&&SOCIAL.snap&&data.fetched_at===SOCIAL.snap){ if(btn) btn.disabled=false; return; }
     let ranked;
     if(Array.isArray(data.candidates)&&data.candidates.length){
       // v2 snapshot: the host already counted mentions against a wide TMDB vocabulary and enriched each title.
