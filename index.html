@@ -470,7 +470,7 @@
 </div>
 
 <script>
-const BUILD=1788587589;
+const BUILD=1788588026;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -2284,7 +2284,7 @@ function loadLearnedFromBody(body){
   renderLearned();
 }
 function learnedGenreIds(){ return (LEARNED&&LEARNED.genres_like||[]).filter(id=>!GPREF[id]); } // an explicit choice always wins
-function learnedHash(){ return LEARNED?LEARNED.hash:''; }
+function learnedHash(){ return LEARNED?`${LEARNED.hash}:${LEARNED.ver}:${LEARNED.at||''}`:''; } // any re-learn invalidates every AI score, by design
 function renderLearned(){
   const box=document.getElementById('learnedBox'), el=document.getElementById('learnedBody'), st=document.getElementById('learnStatus');
   if(!box||!el) return;
