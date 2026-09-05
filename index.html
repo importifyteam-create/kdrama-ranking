@@ -470,7 +470,7 @@
 </div>
 
 <script>
-const BUILD=1788588026;
+const BUILD=1788588223;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1191,7 +1191,7 @@ async function refreshSocial(opts){
     const snapAt=data.fetched_at?new Date(data.fetched_at):null;
     // Auto mode (on every page load): only work when the host published a newer snapshot than the one
     // already folded into SOCIAL. AI scores are cached per TMDB id, so a new snapshot costs only its new titles.
-    const stale=SOCIAL.items.some(i=>!(AICACHE[i.id]&&AICACHE[i.id].ver===AI_VER)); // engine version bumped → re-score
+    const lhNow=learnedHash(); const stale=SOCIAL.items.some(i=>{const a=AICACHE[i.id]; return !(a&&a.parts&&a.ver===AI_VER&&(a.lh||'')===lhNow);}); // engine bumped or profile re-learned → re-score
     if(opts.auto&&!stale&&SOCIAL.snap&&data.fetched_at===SOCIAL.snap){ if(btn) btn.disabled=false; return; }
     let ranked;
     if(Array.isArray(data.candidates)&&data.candidates.length){
