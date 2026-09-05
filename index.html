@@ -470,7 +470,7 @@
 </div>
 
 <script>
-const BUILD=1788587243;
+const BUILD=1788587461;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -2253,16 +2253,20 @@ async function learnTaste(opts){
     if(items.length<MIN_RATED_TO_LEARN) throw new Error('לא הצלחתי לנתח מספיק סדרות');
     const T=computeTolerances(items);
     if(st) st.textContent='מסכם את הטעם...';
-    const sys="You build a viewer's taste profile for a Korean-drama recommendation engine from the shows he rated, his own reasons, and objective attribute sheets of those shows. Reasons matter more than numbers; dropped shows matter most. Return JSON only: {\"summary\": string (2 sentences), \"drivers\": [up to 6 short strings, strongest first], \"dealbreakers\": [up to 5 short strings], \"realism_definition\": string (2-3 sentences: what 'realistic enough' means for THIS viewer, derived from what he accepted and what he dropped), \"anchors\": [{\"title\": string, \"realism\": 0-20, \"note\": string}] one per rated show (realism = how a recommender should score that show's realism for him on a 0-20 scale; his loved shows are the top of the scale, dropped shows the bottom), \"genres_like\": [ids from: "+GENRES.map(g=>g.id).join(',')+"], \"tone_like\": [from grounded,dark,light,stylized], \"humor\": \"fine|some|avoid\", \"romance\": \"fine|some|avoid\", \"violence\": \"fine|some|avoid\", \"closest_style\": string (one sentence: the kind of show that fits him best)}. Write the strings in "+(LANG==='en'?'English':'Hebrew')+". Be specific and quote his own reasons.";
+    // Two calls, not one: the Worker caps output at 800 tokens and a single profile JSON with anchors overflowed it.
+    const lang=(LANG==='en'?'English':'Hebrew');
     const lines=items.slice().sort((a,b)=>b.h.weight-a.h.weight).map(x=>`${x.h.t} (${x.h.y||'?'}) — rating ${x.h.rating}${x.h.liked?` — liked: ${x.h.liked}`:''}${x.h.disliked?` — less: ${x.h.disliked}`:''}\n   attributes: ${ATTR_KEYS.map(k=>`${k} ${x.a[k]}`).join(', ')}, structure ${x.a.structure}; ${x.a.line}`);
     const user=`Rated shows (10 perfect, 8-9 excellent, 6-7 good, dropped = abandoned mid-way):\n${lines.join('\n')}\n\nMeasured tolerances:\n${tolerancesText(T).join('\n')}`;
-    const out=await oaiCall([{role:'system',content:sys},{role:'user',content:user}],800);
+    const sysA="You build a viewer's taste profile for a Korean-drama recommendation engine from the shows he rated, his own reasons, and objective attribute sheets of those shows. Reasons matter more than numbers; dropped shows matter most. Return JSON only: {\"summary\": string (2 sentences), \"drivers\": [up to 6 short strings, strongest first], \"dealbreakers\": [up to 5 short strings], \"realism_definition\": string (2-3 sentences: what 'realistic enough' means for THIS viewer, derived from what he accepted and what he dropped), \"closest_style\": string (one sentence: the kind of show that fits him best)}. Keep every string short. Write in "+lang+". Be specific and quote his own reasons.";
+    const outA=await oaiCall([{role:'system',content:sysA},{role:'user',content:user}],700);
+    const sysB="From the same rated shows, return JSON only: {\"anchors\": [{\"title\": string, \"realism\": 0-20}] one per rated show (realism = how a recommender should score that show's realism for THIS viewer on a 0-20 scale: his loved shows at the top, dropped shows at the bottom, sincere-but-heightened shows he loved in the middle), \"genres_like\": [ids only, from: "+GENRES.map(g=>g.id).join(',')+"], \"tone_like\": [from grounded,dark,light,stylized], \"humor\": \"fine|some|avoid\", \"romance\": \"fine|some|avoid\", \"violence\": \"fine|some|avoid\"}. No prose.";
+    const outB=await oaiCall([{role:'system',content:sysB},{role:'user',content:user}],600);
     const L={ver:LEARN_VER,hash,at:new Date().toISOString(),n:items.length,lang:LANG,
-      summary:String(out.summary||''),drivers:(out.drivers||[]).map(String).slice(0,6),dealbreakers:(out.dealbreakers||[]).map(String).slice(0,5),
-      realism_definition:String(out.realism_definition||''),
-      anchors:(out.anchors||[]).map(a=>({title:String(a.title||''),realism:Math.max(0,Math.min(20,parseInt(a.realism)||0)),note:String(a.note||'')})),
-      genres_like:(out.genres_like||[]).filter(g=>GBY[g]),tone_like:(out.tone_like||[]).filter(t=>['grounded','dark','light','stylized'].includes(t)),
-      humor:String(out.humor||''),romance:String(out.romance||''),violence:String(out.violence||''),closest_style:String(out.closest_style||''),
+      summary:String(outA.summary||''),drivers:(outA.drivers||[]).map(String).slice(0,6),dealbreakers:(outA.dealbreakers||[]).map(String).slice(0,5),
+      realism_definition:String(outA.realism_definition||''),closest_style:String(outA.closest_style||''),
+      anchors:(outB.anchors||[]).map(a=>({title:String(a.title||''),realism:Math.max(0,Math.min(20,parseInt(a.realism)||0))})),
+      genres_like:(outB.genres_like||[]).filter(g=>GBY[g]),tone_like:(outB.tone_like||[]).filter(t=>['grounded','dark','light','stylized'].includes(t)),
+      humor:String(outB.humor||''),romance:String(outB.romance||''),violence:String(outB.violence||''),
       tolerances:tolerancesText(T)};
     LEARNED=L; try{localStorage.setItem('krdb_learned',JSON.stringify(L));}catch(e){}
     // share across devices as an issue; the newest "טעם: נלמד" wins on load
