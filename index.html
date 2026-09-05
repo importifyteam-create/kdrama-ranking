@@ -457,7 +457,7 @@
 </div>
 
 <script>
-const BUILD=1788583648;
+const BUILD=1788584248;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1133,7 +1133,8 @@ const SOCIAL=(function(){try{const c=JSON.parse(localStorage.getItem('krdb_socia
 const STOP=new Set(['signal','mother','doubt','karma','honour','honor','glory','mask','voice','secret','hidden','tunnel','stranger','trap','the trunk','doctors','reply','goodbye','again','light','bad','good','life','love','money','king','queen','moving','trigger','ghost','pilot']);
 function socialFilterOk(x){
   const k=(x.t||'').toLowerCase();
-  if(statusOf(x.t)==='watched'||SKIP.has(k)||inWatchlist(x.t)) return false;
+  const st=statusOf(x.t);
+  if(st==='watched'||st==='ranked'||SKIP.has(k)||inWatchlist(x.t)) return false; // ranked: already in For You, don't duplicate it here
   if(avoidedGenre(x.genre_ids)) return false;
   return true;
 }
