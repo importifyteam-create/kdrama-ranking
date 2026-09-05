@@ -478,7 +478,7 @@
 </div>
 
 <script>
-const BUILD=1788619471;
+const BUILD=1788619616;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -723,7 +723,7 @@ function render(filter){
         </div>
         <p class="genres">${s.g}${s.st?` · ${s.st}`:''}</p>
         <p class="genres">${s.prov?`זמין בתאילנד: ${s.prov}`:(s.tm?`אין סטרימינג בתאילנד כרגע${s.plat?` · ${s.plat}`:''}`:s.plat)}</p>
-        <p class="like">${s.favActors?`<bdi>${s.favActors.join(', ')}</bdi> ${'· שחקן מועדף'}`:`בסגנון של ${s.like.map(x=>`<bdi>${x}</bdi>`).join(' + ')}`}</p>
+        <p class="like">${s.favActors?`<bdi>${s.favActors.join(', ')}</bdi> ${'· שחקן מועדף'}`:`בסגנון של ${(s.like||[]).map(x=>`<bdi>${x}</bdi>`).join(' + ')}`}</p>
         ${s.note?`<p class="note">${s.note}</p>`:''}
         <div class="links">
           <a href="${s.mdlU}" target="_blank" rel="noopener">MyDramaList</a>
@@ -748,6 +748,9 @@ function render(filter){
 
 // ====== העשרה חיה מ-TMDB ======
 const TMDB_KEY="fd37a1230832a8c38f699f082fa16110";
+// Titles Claude removed from the ranking on purpose (depth-axis re-vet 2026-09-01) plus the two dropped shows — the
+// engine may never re-add them. Declared up here with var: applyPicks() runs at init, before the engine block.
+var VETOED=new Set(["liar game","mercy for none","karma","gold land","the 8 show","the trunk","one dollar lawyer","bloodhounds","taxi driver","vincenzo"]);
 var LAST_SCAN="2026-09-05"; // מתי קלוד עיבד לאחרונה (מתעדכן בכל רגנרציה); var so it exists before applyFitState() runs at init
 let currentFilter='all';
 let FORYOU_LIMIT=20;
@@ -2401,8 +2404,6 @@ let SOCIAL_DIRTY=false, DISC_DIRTY=false, REVIEW_DIRTY=false, PICKS_DIRTY=false;
 // This is the useful half of the old "Update For You" button, without the half that rewrote the curated numbers.
 // Picks are marked pick:'actor' + est:true, sorted in with the curated list, shared across devices, recomputed when
 // the learned profile or the engine version changes, and never touch a hand-set number.
-// Titles Claude removed from the ranking on purpose (depth-axis re-vet 2026-09-01) — the engine may not re-add them.
-const VETOED=new Set(["liar game","mercy for none","karma","gold land","the 8 show","the trunk","one dollar lawyer","bloodhounds","taxi driver","vincenzo"]);
 function applyPicks(P){
   if(!P||!Array.isArray(P.added)) return 0;
   P.added=P.added.filter(a=>!VETOED.has((a.t||'').toLowerCase()));
