@@ -457,7 +457,7 @@
 </div>
 
 <script>
-const BUILD=1788579485;
+const BUILD=1788581335;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1161,9 +1161,16 @@ async function refreshSocial(){
   if(btn) btn.disabled=true;
   try{
     if(st) st.textContent='קורא את r/KDRAMA...';
-    const r=await fetch(WORKER_URL+'/social',{cache:'no-store'});
-    if(!r.ok) throw new Error('worker '+r.status);
-    const data=await r.json();
+    // Snapshot first: social.json is written every 6h by the Cloudways host (Reddit blocks cloud IPs, so the
+    // Worker's live /social route is only a fallback). Same-origin, so no CORS and no Worker involved.
+    let data=null;
+    try{ const r0=await fetch('social.json?_='+Date.now(),{cache:'no-store'}); if(r0.ok){ const j=await r0.json(); if(j&&Array.isArray(j.posts)&&j.posts.length) data=j; } }catch(err){}
+    if(!data){
+      const r=await fetch(WORKER_URL+'/social',{cache:'no-store'});
+      if(!r.ok) throw new Error('worker '+r.status);
+      data=await r.json();
+    }
+    const snapAt=data.fetched_at?new Date(data.fetched_at):null;
     const texts=[...(data.posts||[]).map(p=>({text:(p.title||'')+' '+(p.selftext||''),ups:p.ups})),...(data.comments||[]).map(c=>({text:c.body,ups:c.ups}))];
     if(st) st.textContent='מזהה כותרים...';
     const vocab=await buildVocab();
@@ -1184,7 +1191,7 @@ async function refreshSocial(){
     SOCIAL.ts=Date.now(); SOCIAL.items=items;
     try{localStorage.setItem('krdb_social',JSON.stringify(SOCIAL));}catch(err){}
     renderRecs();
-    if(st) st.textContent=`נמצאו ${items.length} הצעות שעוברות את הטעם שלך (מתוך ${ranked.length} מוזכרות)`;
+    if(st) st.textContent=`נמצאו ${items.length} הצעות שעוברות את הטעם שלך (מתוך ${ranked.length} מוזכרות)`+(snapAt?` · r/KDRAMA ${snapAt.toISOString().slice(0,16).replace('T',' ')} UTC`:'');
   }catch(e){ if(st) st.textContent='שגיאה: '+(e.message||''); }
   if(btn) btn.disabled=false;
 }
