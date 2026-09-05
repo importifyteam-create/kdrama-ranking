@@ -478,7 +478,7 @@
 </div>
 
 <script>
-const BUILD=1788619339;
+const BUILD=1788619471;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1178,6 +1178,7 @@ function socialFilterOk(x){
   const k=(x.t||'').toLowerCase();
   const st=statusOf(x.t);
   if(st==='watched'||st==='ranked'||SKIP.has(k)||inWatchlist(x.t)) return false; // ranked: already in For You, don't duplicate it here
+  if(typeof VETOED!=='undefined'&&VETOED.has(k)) return false; // removed from the ranking by Claude on purpose
   if(avoidedGenre(x.genre_ids)) return false;
   return true;
 }
@@ -2400,8 +2401,11 @@ let SOCIAL_DIRTY=false, DISC_DIRTY=false, REVIEW_DIRTY=false, PICKS_DIRTY=false;
 // This is the useful half of the old "Update For You" button, without the half that rewrote the curated numbers.
 // Picks are marked pick:'actor' + est:true, sorted in with the curated list, shared across devices, recomputed when
 // the learned profile or the engine version changes, and never touch a hand-set number.
+// Titles Claude removed from the ranking on purpose (depth-axis re-vet 2026-09-01) — the engine may not re-add them.
+const VETOED=new Set(["liar game","mercy for none","karma","gold land","the 8 show","the trunk","one dollar lawyer","bloodhounds","taxi driver","vincenzo"]);
 function applyPicks(P){
   if(!P||!Array.isArray(P.added)) return 0;
+  P.added=P.added.filter(a=>!VETOED.has((a.t||'').toLowerCase()));
   let n=0;
   P.added.forEach(a=>{ if(shows.some(s=>s.t.toLowerCase()===a.t.toLowerCase())) return; shows.push(Object.assign({},a,{pick:'actor',est:true})); try{KNOWN.add(a.t.toLowerCase());}catch(e){} n++; });
   if(n){ shows.sort((a,b)=>(b.m||0)-(a.m||0)); renumber(); }
@@ -2414,7 +2418,7 @@ async function autoActorPicks(){
   const saved=cacheGet('krdb_picks',0);
   if(saved&&saved.lh===lh&&saved.ver===AI_VER){ applyPicks(saved); cleanupPicks(); render(currentFilter); return; }
   for(let i=shows.length-1;i>=0;i--) if(shows[i].pick==='actor') shows.splice(i,1); // profile or engine changed: start over
-  const cands=ACTORCANDS.filter(c=>!SKIP.has(c.t.toLowerCase())&&!shows.some(x=>x.t.toLowerCase()===c.t.toLowerCase())&&statusOf(c.t)!=='watched'&&!inWatchlist(c.t)).sort((a,b)=>(b.m||0)-(a.m||0)).slice(0,40);
+  const cands=ACTORCANDS.filter(c=>!VETOED.has(c.t.toLowerCase())&&!SKIP.has(c.t.toLowerCase())&&!shows.some(x=>x.t.toLowerCase()===c.t.toLowerCase())&&statusOf(c.t)!=='watched'&&!inWatchlist(c.t)).sort((a,b)=>(b.m||0)-(a.m||0)).slice(0,40);
   const cards=[];
   await Promise.all(cands.map(async c=>{ try{ const f=await buildFullById(c.id,{}); if(f){ f.favActors=c.favActors; cards.push(f); } }catch(e){} }));
   await autoScore(cards,{});
