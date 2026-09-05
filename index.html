@@ -470,7 +470,7 @@
 </div>
 
 <script>
-const BUILD=1788588939;
+const BUILD=1788590320;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -808,9 +808,14 @@ const BASE_FB={
  "teach you a lesson":{rating:"8",liked:"הצדק המיידי מקרה אחרי מקרה, והביקורת על מערכת החינוך",disliked:"אלימות מוגזמת שנראית לא מקצועית ומורידה את איכות הסדרה"}
 };
 
+// ====== LOAD SPEED (05-09-26): render from the browser cache first, refresh from the network in the background ======
+function cacheGet(key,ttlMs){ try{const c=JSON.parse(localStorage.getItem(key)||'null'); if(!c||!c.ts) return null; if(ttlMs&&Date.now()-c.ts>ttlMs) return null; return c.v;}catch(e){return null;} }
+function cacheSet(key,v){ try{localStorage.setItem(key,JSON.stringify({ts:Date.now(),v}));}catch(e){} }
+function issuesSig(iss){ return (iss||[]).map(i=>i.number+':'+(i.updated_at||'')).join(','); }
+function resetIssueState(){ FEEDBACK.clear(); RECS_T.clear(); SKIP.clear(); WLDEC.clear(); SKIPDEC.clear(); SEENDEC.clear(); SEEN.clear(); UNSEEN.clear(); RECS.length=0; FAVA.clear(); window.__tasteLoaded=false; window.__genLoaded=false; window.__learnedLoaded=false; }
 async function loadFeedback(){
+  let iss=null, fromCache=false, diag=[];
   try{
-    let iss=null, fromCache=false, diag=[];
     // 1. דרך ה-Worker (מזוהה, 5000 בקשות לשעה)
     try{
       const r=await fetch(WORKER_URL+'/issues',{cache:'no-store'});
@@ -835,6 +840,15 @@ async function loadFeedback(){
       iss=iss||[];
     }
     window.__issuesFromCache=fromCache; window.__issuesDiag=diag.join(' · ')+(fromCache?' · using cache':'');
+    const sig=issuesSig(iss);
+    if(window.__issuesSig===sig){ const dl=document.getElementById('dataLine'); if(dl) dl.innerHTML=`מקור הנתונים: ${window.__issuesDiag}`; return; } // the cached copy was already applied and nothing changed
+    if(window.__issuesSig) resetIssueState(); // something changed on another device: rebuild from the live list
+    window.__issuesSig=sig;
+  }catch(e){}
+  applyIssues(iss||[]);
+}
+function applyIssues(iss){
+  try{
     pendingCount=(Array.isArray(iss)?iss:[]).filter(i=>/^פידבק: /.test(i.title||"")&&(i.created_at||'')>LAST_SCAN+'T23:59:59Z').length;
     (Array.isArray(iss)?iss:[]).forEach(i=>{
       if(/^פידבק: טעם: נלמד/.test(i.title||"")){ if(!window.__learnedLoaded){window.__learnedLoaded=true; loadLearnedFromBody(i.body||'');} return; }
@@ -1323,8 +1337,8 @@ async function buildActorCands(){
   ACTORCANDS.length=0;
   if(!TMDB_KEY) return;
   const byId=new Map();
-  for(const [name,info] of FAVP){
-    if(!info||!info.id) continue;
+  await Promise.all([...FAVP].map(async ([name,info])=>{
+    if(!info||!info.id) return;
     try{
       const cr=await fetch(`https://api.themoviedb.org/3/person/${info.id}/tv_credits?api_key=${TMDB_KEY}`).then(r=>r.json());
       ((cr.cast)||[]).forEach(c=>{
@@ -1337,7 +1351,7 @@ async function buildActorCands(){
         byId.set(c.id,e);
       });
     }catch(e){}
-  }
+  }));
   byId.forEach(e=>{
     const c=e.item;
     const base=estMatch(c)+favBonus(e.actors.length)+genreAdjust(c.genre_ids);
@@ -1482,7 +1496,7 @@ renderTasteSummary();
   b.disabled=true; b.textContent='מרענן...';
   try{localStorage.removeItem('krdb_issues');}catch(e){}
   FEEDBACK.clear(); RECS_T.clear(); SKIP.clear(); WLDEC.clear(); RECS.length=0; FAVA.clear();
-  window.__tasteLoaded=false; window.__genLoaded=false; window.__learnedLoaded=false;
+  window.__tasteLoaded=false; window.__genLoaded=false; window.__learnedLoaded=false; window.__issuesSig=null;
   await loadFeedback();
   b.textContent='רועננו'; setTimeout(()=>{b.textContent='רענן נתונים מהשרת';b.disabled=false;},1500);
 };})();
@@ -1773,8 +1787,15 @@ function gallupBonus(castNames){
 
 const FAVP=new Map(); // שם שחקן מועדף -> {id, p}
 async function hydrateFavActors(){
+  const cached=cacheGet('krdb_favp',0)||{};
+  const missing=[];
   for(const [name,on] of FAVA){
-    if(on&&!FAVP.has(name)){
+    if(!on||FAVP.has(name)) continue;
+    if(cached[name]&&cached[name].id) FAVP.set(name,cached[name]); else missing.push(name);
+  }
+  renderFavActors(); // instant from cache
+  if(missing.length){
+    await Promise.all(missing.map(async name=>{
       try{
         const r=await fetch(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}`).then(x=>x.json());
         const list=(r.results||[]);
@@ -1782,9 +1803,10 @@ async function hydrateFavActors(){
         const p=(exact.find(x=>x.profile_path)||list.find(x=>x.profile_path)||exact[0]||list[0]);
         if(p) FAVP.set(name,{id:p.id,p:p.profile_path});
       }catch(e){}
-    }
+    }));
+    renderFavActors();
   }
-  renderFavActors();
+  const store={}; FAVP.forEach((v,k)=>{store[k]=v;}); cacheSet('krdb_favp',store);
   buildActorCands();
 }
 // הפופולריים לפי MyDramaList: קוריאנים בלבד (היקף האתר), הדירוג הוא של MDL
@@ -1935,14 +1957,28 @@ function renderRecs(){
   updateRecsCount();
 }
 async function hydrateLists(){
+  // 1. instant: cards cached from a previous visit
+  const cached=cacheGet('krdb_recs_cards',0)||{};
+  const missing=[];
   for(const t of RECS_T){
-    if(!RECS.some(c=>c.t.toLowerCase()===t.toLowerCase())){
-      const c=await tmdbCard(t); if(c){RECS.push(c);KNOWN.add(c.t.toLowerCase());}
-    }
+    if(RECS.some(c=>c.t.toLowerCase()===t.toLowerCase())) continue;
+    const c=cached[t.toLowerCase()];
+    if(c){RECS.push(c);KNOWN.add(c.t.toLowerCase());} else missing.push(t);
   }
-  renderRecs();
+  const order=[...RECS_T].map(t=>t.toLowerCase());
+  const sortRecs=()=>RECS.sort((a,b)=>order.indexOf(a.t.toLowerCase())-order.indexOf(b.t.toLowerCase()));
+  sortRecs(); renderRecs();
+  // 2. the other strips start now, not after this one
   hydrateFavActors();
   (async()=>{ await maybeLearn(); refreshSocial({auto:true}); })(); // learn from new ratings first, then score the host snapshot
+  // 3. network only for what the cache lacks, all at once
+  const store=Object.assign({},cached);
+  if(missing.length){
+    const got=await Promise.all(missing.map(async t=>({t,c:await tmdbCard(t).catch(()=>null)})));
+    got.forEach(({t,c})=>{ if(!c) return; store[t.toLowerCase()]=c; if(!RECS.some(x=>x.t.toLowerCase()===c.t.toLowerCase())){RECS.push(c);KNOWN.add(c.t.toLowerCase());} });
+    sortRecs(); renderRecs();
+  }
+  cacheSet('krdb_recs_cards',store);
 }
 function renderScanLine(){
   const el=document.getElementById('scanLine'); if(!el) return;
@@ -2563,6 +2599,9 @@ function estMatch(x){
 async function discover(){
   if(!TMDB_KEY) return;
     const yrs=PREF.era==='new2'?2:PREF.era==='classics'?8:PREF.era==='new5'?5:2;
+    const dkey='krdb_disc:'+yrs;
+    const cachedDisc=cacheGet(dkey,6*3600*1000);
+    if(cachedDisc&&cachedDisc.length){ DISC=cachedDisc; renderDisc(); document.getElementById('discover').hidden=false; return; } // instant; refreshed every 6 h
     const since=new Date(Date.now()-yrs*365*24*3600*1000).toISOString().slice(0,10);
     const base=`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&sort_by=popularity.desc&with_origin_country=KR&first_air_date.gte=${since}`;
     const qs=[];
@@ -2608,7 +2647,7 @@ async function discover(){
       }catch(e){}
       return c;
     }));
-    DISC=cards;
+    DISC=cards; cacheSet(dkey,cards);
     renderDisc();
     document.getElementById('discover').hidden=false;
 }
@@ -2674,6 +2713,8 @@ function renderDisc(){
 }
 async function discoverSafe(){try{await discover();}catch(e){}}
 discoverSafe();
+// cached issues first (instant), then the live list; applyIssues runs again only if something changed
+(function(){ try{ const c=JSON.parse(localStorage.getItem('krdb_issues')||'null'); if(Array.isArray(c)&&c.length){ window.__issuesSig=issuesSig(c); window.__issuesDiag='cache'; applyIssues(c); } }catch(e){} })();
 loadFeedback();
 </script>
 </body>
