@@ -470,7 +470,7 @@
 </div>
 
 <script>
-const BUILD=1788587461;
+const BUILD=1788587589;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -2159,7 +2159,7 @@ async function oaiCall(messages,maxTokens){
 // 2. learnTaste(): ratings × attributes → measured tolerances (code) + narrative profile (model), saved
 //    locally and as an issue "פידבק: טעם: נלמד" so every device shares it
 // 3. aiMatch() reads LEARNED instead of hand-written anchors; explicit Settings choices still win.
-var ATTR_VER=1, LEARN_VER=1, MIN_RATED_TO_LEARN=5; // var, not let/const: renderGenres() runs at init before this block executes
+var ATTR_VER=1, LEARN_VER=2, MIN_RATED_TO_LEARN=5; // var, not let/const: renderGenres() runs at init before this block executes
 var ATTRS=(function(){try{return JSON.parse(localStorage.getItem('krdb_attrs')||'{}');}catch(e){return {};}})();
 var LEARNED=(function(){try{const l=JSON.parse(localStorage.getItem('krdb_learned')||'null');return (l&&l.ver===LEARN_VER)?l:null;}catch(e){return null;}})();
 var TMIDS=(function(){try{return JSON.parse(localStorage.getItem('krdb_tmids')||'{}');}catch(e){return {};}})();
@@ -2259,13 +2259,15 @@ async function learnTaste(opts){
     const user=`Rated shows (10 perfect, 8-9 excellent, 6-7 good, dropped = abandoned mid-way):\n${lines.join('\n')}\n\nMeasured tolerances:\n${tolerancesText(T).join('\n')}`;
     const sysA="You build a viewer's taste profile for a Korean-drama recommendation engine from the shows he rated, his own reasons, and objective attribute sheets of those shows. Reasons matter more than numbers; dropped shows matter most. Return JSON only: {\"summary\": string (2 sentences), \"drivers\": [up to 6 short strings, strongest first], \"dealbreakers\": [up to 5 short strings], \"realism_definition\": string (2-3 sentences: what 'realistic enough' means for THIS viewer, derived from what he accepted and what he dropped), \"closest_style\": string (one sentence: the kind of show that fits him best)}. Keep every string short. Write in "+lang+". Be specific and quote his own reasons.";
     const outA=await oaiCall([{role:'system',content:sysA},{role:'user',content:user}],700);
-    const sysB="From the same rated shows, return JSON only: {\"anchors\": [{\"title\": string, \"realism\": 0-20}] one per rated show (realism = how a recommender should score that show's realism for THIS viewer on a 0-20 scale: his loved shows at the top, dropped shows at the bottom, sincere-but-heightened shows he loved in the middle), \"genres_like\": [ids only, from: "+GENRES.map(g=>g.id).join(',')+"], \"tone_like\": [from grounded,dark,light,stylized], \"humor\": \"fine|some|avoid\", \"romance\": \"fine|some|avoid\", \"violence\": \"fine|some|avoid\"}. No prose.";
+    const sysB="From the same rated shows, return JSON only: {\"genres_like\": [up to 8 ids, only genres clearly supported by at least two shows he rated 8 or higher, from: "+GENRES.map(g=>g.id).join(',')+"], \"tone_like\": [from grounded,dark,light,stylized], \"humor\": \"fine|some|avoid\", \"romance\": \"fine|some|avoid\", \"violence\": \"fine|some|avoid\"}. No prose.";
     const outB=await oaiCall([{role:'system',content:sysB},{role:'user',content:user}],600);
     const L={ver:LEARN_VER,hash,at:new Date().toISOString(),n:items.length,lang:LANG,
       summary:String(outA.summary||''),drivers:(outA.drivers||[]).map(String).slice(0,6),dealbreakers:(outA.dealbreakers||[]).map(String).slice(0,5),
       realism_definition:String(outA.realism_definition||''),closest_style:String(outA.closest_style||''),
-      anchors:(outB.anchors||[]).map(a=>({title:String(a.title||''),realism:Math.max(0,Math.min(20,parseInt(a.realism)||0))})),
-      genres_like:(outB.genres_like||[]).filter(g=>GBY[g]),tone_like:(outB.tone_like||[]).filter(t=>['grounded','dark','light','stylized'].includes(t)),
+      // anchors come from his verdicts, not from the model: loved = top of the realism scale by definition, dropped = bottom.
+      // The heightened/sincerity numbers next to each tell the scorer how far from real life he has accepted going.
+      anchors:items.slice().sort((a,b)=>b.h.weight-a.h.weight).map(x=>({title:x.h.t,realism:x.h.weight>=3?19:x.h.weight===2?16:x.h.weight===1?13:4,heightened:x.a.heightened,sincerity:x.a.sincerity})),
+      genres_like:(outB.genres_like||[]).filter(g=>GBY[g]).slice(0,8),tone_like:(outB.tone_like||[]).filter(t=>['grounded','dark','light','stylized'].includes(t)),
       humor:String(outB.humor||''),romance:String(outB.romance||''),violence:String(outB.violence||''),
       tolerances:tolerancesText(T)};
     LEARNED=L; try{localStorage.setItem('krdb_learned',JSON.stringify(L));}catch(e){}
@@ -2334,7 +2336,7 @@ async function aiMatch(c){
   if(AICACHE[c.id]&&AICACHE[c.id].parts&&AICACHE[c.id].ver===AI_VER&&(AICACHE[c.id].lh||'')===lh) return AICACHE[c.id]; // older entries, or a re-learned profile, recompute
   const t=tasteSummary(); const L=LEARNED;
   const realismDef=L&&L.realism_definition?("For THIS viewer, learned from his ratings: "+L.realism_definition):"Judge EXECUTION, not premise: played straight and sincere, villains who are people, consequences that cost something, institutions that work like real ones. A declared game-world premise is fine; fantasy mechanics inside a grounded story cost points.";
-  const anchors=L&&L.anchors&&L.anchors.length?("Anchors on the 0-20 realism scale, from his own shows: "+L.anchors.map(a=>`${a.title}=${a.realism}`).join(', ')+"."):"Anchors: a documentary-grounded thriller = 18-20; a comic-book revenge fantasy = under 8.";
+  const anchors=L&&L.anchors&&L.anchors.length?("Anchors on the 0-20 realism scale, set by his own verdicts (loved = 19, liked = 16, dropped = 4), each with the show's measured heightened-execution and sincerity on 0-10, so you can see how far from real life he accepts going when the stakes are sincere: "+L.anchors.map(a=>`${a.title}=${a.realism} (heightened ${a.heightened}, sincerity ${a.sincerity})`).join(', ')+". A candidate whose heightened level is within what he loved and whose sincerity is as high should score realism like those shows, not like the dropped ones."):"Anchors: a documentary-grounded thriller = 18-20; a comic-book revenge fantasy = under 8.";
   const humorRule=L&&L.humor==='avoid'?"Humor mixed into a serious story is a NEGATIVE for him.":L&&L.humor==='some'?"He tolerates light humor but not a comic tone in a serious story.":"";
   const sys="You score how well a Korean drama fits ONE specific viewer. Return JSON only: {\"parts\":{\"realism\":0-20,\"depth\":0-20,\"genre\":0-20,\"tone\":0-20,\"format\":0-20},\"closest\": string (the one rated show this candidate most resembles, or \"\"),\"why\": string (2 sentences, in "+(LANG==='en'?'English':'Hebrew')+")}.\n"
    +"realism = could this happen to real people, told at the volume of real life. "+realismDef+" "+anchors+"\n"
