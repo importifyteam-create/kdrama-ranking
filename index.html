@@ -478,7 +478,7 @@
 </div>
 
 <script>
-const BUILD=1788613839;
+const BUILD=1788619339;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -804,6 +804,7 @@ document.getElementById('fScore').addEventListener('change',e=>{F.score=parseFlo
 document.getElementById('fYear').addEventListener('change',e=>{F.year=e.target.value;render(currentFilter);renderDisc();});
 document.getElementById('fActor').addEventListener('input',e=>{F.actor=e.target.value.trim();render(currentFilter);renderDisc();});
 applyFitState();
+applyPicks(cacheGet('krdb_picks',0)); // engine picks (favorite-actor shows) from the last pass, instantly; validated by the chain
 render('all');
 enrichAll();
 
@@ -1836,7 +1837,7 @@ async function hydrateFavActors(){
     renderFavActors();
   }
   const store={}; FAVP.forEach((v,k)=>{store[k]=v;}); cacheSet('krdb_favp',store);
-  buildActorCands();
+  window.__actorCandsReady=buildActorCands();
 }
 // הפופולריים לפי MyDramaList: קוריאנים בלבד (היקף האתר), הדירוג הוא של MDL
 const MDLPHOTO=(function(){try{return JSON.parse(localStorage.getItem('krdb_mdlphotos')||'{}');}catch(e){return {};}})();
@@ -2394,11 +2395,51 @@ function historyBlock(){
 // ====== SHARED STATE (05-09-26): every device sees the same computed results ======
 // The Worker stores small JSON files in the repo (state/<key>.json). The first device to compute writes; the others
 // read and skip the work. Tolerates an older Worker without the route (GET 404/405 → nothing happens).
-let SOCIAL_DIRTY=false, DISC_DIRTY=false, REVIEW_DIRTY=false;
+let SOCIAL_DIRTY=false, DISC_DIRTY=false, REVIEW_DIRTY=false, PICKS_DIRTY=false;
+// ====== ENGINE PICKS (05-09-26): shows with his favorite actors that clear the bar join For You automatically ======
+// This is the useful half of the old "Update For You" button, without the half that rewrote the curated numbers.
+// Picks are marked pick:'actor' + est:true, sorted in with the curated list, shared across devices, recomputed when
+// the learned profile or the engine version changes, and never touch a hand-set number.
+function applyPicks(P){
+  if(!P||!Array.isArray(P.added)) return 0;
+  let n=0;
+  P.added.forEach(a=>{ if(shows.some(s=>s.t.toLowerCase()===a.t.toLowerCase())) return; shows.push(Object.assign({},a,{pick:'actor',est:true})); try{KNOWN.add(a.t.toLowerCase());}catch(e){} n++; });
+  if(n){ shows.sort((a,b)=>(b.m||0)-(a.m||0)); renumber(); }
+  return n;
+}
+function cleanupPicks(){ shows.forEach(s=>{ const k=s.t.toLowerCase(); if(s.pick==='actor'&&!s.moved&&(SKIP.has(k)||FEEDBACK.has(k)||WATCHED.some(w=>w.t.toLowerCase()===k))) s.moved=true; }); }
+async function autoActorPicks(){
+  try{ await window.__actorCandsReady; }catch(e){}
+  const lh=learnedHash(); if(!lh) return;
+  const saved=cacheGet('krdb_picks',0);
+  if(saved&&saved.lh===lh&&saved.ver===AI_VER){ applyPicks(saved); cleanupPicks(); render(currentFilter); return; }
+  for(let i=shows.length-1;i>=0;i--) if(shows[i].pick==='actor') shows.splice(i,1); // profile or engine changed: start over
+  const cands=ACTORCANDS.filter(c=>!SKIP.has(c.t.toLowerCase())&&!shows.some(x=>x.t.toLowerCase()===c.t.toLowerCase())&&statusOf(c.t)!=='watched'&&!inWatchlist(c.t)).sort((a,b)=>(b.m||0)-(a.m||0)).slice(0,40);
+  const cards=[];
+  await Promise.all(cands.map(async c=>{ try{ const f=await buildFullById(c.id,{}); if(f){ f.favActors=c.favActors; cards.push(f); } }catch(e){} }));
+  await autoScore(cards,{});
+  const added=[];
+  cards.forEach(c=>{
+    const v=AICACHE[c.id]; if(!v||!v.parts||(v.lh||'')!==lh) return;
+    const eps=parseInt((/(\d+) פרקים/.exec(c.st||'')||[])[1]);
+    const fb=favBonus(c.favActors.length), G=bonusesFor(c.cast||[]).gallup, ga=genreAdjust(c.genre_ids)+lengthAdjust(eps);
+    const m=finalScore(v,{fav:{bonus:fb},gallup:G},ga);
+    if(m<ADD) return;
+    added.push({t:c.t,y:c.y,m,o:'KR',tier:m>=85?1:m>=72?2:3,mdl:null,plat:c.prov||'',f:[],provList:c.provList,
+      brk:{ai:v.match,parts:v.parts||null,gallup:G,fav:{bonus:fb,names:c.favActors},genre:ga,final:m},
+      tint:'var(--tint-revenge)',g:c.g,d:v.why||'',like:[`בגלל ${c.favActors.join(', ')}`],est:true,pick:'actor',
+      tm:c.tm,st:c.st,prov:c.prov,yt:c.yt,poster:c.poster,tmid:c.id,cast:c.cast,favActors:c.favActors,
+      mdlU:`https://www.themoviedb.org/tv/${c.id}`,imdbU:c.imdbU||`https://www.themoviedb.org/tv/${c.id}`});
+  });
+  const P={ts:Date.now(),lh,ver:AI_VER,added};
+  cacheSet('krdb_picks',P); PICKS_DIRTY=true;
+  applyPicks(P); cleanupPicks(); render(currentFilter);
+}
 async function sharedGet(key){ try{ const r=await fetch(WORKER_URL+'/state/'+key,{cache:'no-store'}); if(!r.ok) return null; return await r.json(); }catch(e){ return null; } }
 async function sharedPut(key,obj){ try{ const r=await fetch(WORKER_URL+'/state/'+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}); return r.ok; }catch(e){ return false; } }
 async function pullShared(){
-  const [sc,so,di,rv,fy]=await Promise.all([sharedGet('scores'),sharedGet('social'),sharedGet('disc'),sharedGet('review'),sharedGet('foryou')]);
+  const [sc,so,di,rv,fy,pk]=await Promise.all([sharedGet('scores'),sharedGet('social'),sharedGet('disc'),sharedGet('review'),sharedGet('foryou'),sharedGet('picks')]);
+  if(pk&&Array.isArray(pk.added)&&pk.lh===learnedHash()&&pk.ver===AI_VER){ const loc=cacheGet('krdb_picks',0); if((pk.ts||0)>((loc&&loc.ts)||0)){ cacheSet('krdb_picks',pk); if(applyPicks(pk)) render(currentFilter); } }
   // scores: newer entry wins, per title
   if(sc&&sc.entries){ let n=0; Object.entries(sc.entries).forEach(([id,v])=>{ if(!v||v.ver!==AI_VER) return; const l=AICACHE[id]; if(!l||(v.at||0)>(l.at||0)){ AICACHE[id]=v; n++; } }); if(n){ try{localStorage.setItem('krdb_ai_cache',JSON.stringify(AICACHE));}catch(e){} } }
   if(so&&Array.isArray(so.items)&&(so.ts||0)>(SOCIAL.ts||0)){ SOCIAL.ts=so.ts; SOCIAL.items=so.items; SOCIAL.snap=so.snap||null; try{localStorage.setItem('krdb_social',JSON.stringify(SOCIAL));}catch(e){} renderRecs(); }
@@ -2412,6 +2453,7 @@ async function pushShared(){
   if(SOCIAL_DIRTY){ if(await sharedPut('social',{ts:SOCIAL.ts,snap:SOCIAL.snap||null,items:SOCIAL.items})) SOCIAL_DIRTY=false; }
   if(DISC_DIRTY){ const yrs=PREF.era==='new2'?2:PREF.era==='classics'?8:PREF.era==='new5'?5:2; if(await sharedPut('disc',{ts:Date.now(),yrs,cards:DISC})) DISC_DIRTY=false; }
   if(REVIEW_DIRTY){ const rv=cacheGet('krdb_review',0); if(rv&&await sharedPut('review',rv)) REVIEW_DIRTY=false; }
+  if(PICKS_DIRTY){ const pk=cacheGet('krdb_picks',0); if(pk&&await sharedPut('picks',pk)) PICKS_DIRTY=false; }
 }
 // ====== ALWAYS CURRENT (05-09-26): one chain per page open, triggered by whatever changed ======
 async function runScoreChain(){
@@ -2422,6 +2464,7 @@ async function runScoreChain(){
     try{ await refreshSocial({auto:true}); }catch(e){}
     try{ await autoScoreNew(); }catch(e){}
     try{ await reviewForYou(); }catch(e){}
+    try{ await autoActorPicks(); }catch(e){}
     try{ await pushShared(); }catch(e){}
   })();
   try{ await window.__chain; } finally { window.__chain=null; }
