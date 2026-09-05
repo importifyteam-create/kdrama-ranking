@@ -477,7 +477,7 @@
 </div>
 
 <script>
-const BUILD=1788599563;
+const BUILD=1788606996;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -1256,7 +1256,7 @@ async function refreshSocial(opts){
       items.push({t:card.t,id:card.id,y:card.y,poster:card.poster,m,mentions:e.mentions,ups:e.ups,src:e.src||'r/KDRAMA'});
     }
     items.sort((a,b)=>b.m-a.m);
-    SOCIAL.ts=Date.now(); SOCIAL.items=items; SOCIAL.snap=data.fetched_at||null;
+    SOCIAL.ts=Date.now(); SOCIAL.items=items; SOCIAL.snap=data.fetched_at||null; SOCIAL_DIRTY=true;
     try{localStorage.setItem('krdb_social',JSON.stringify(SOCIAL));}catch(err){}
     renderRecs();
     if(st) st.textContent=`נמצאו ${items.length} הצעות שעוברות את הטעם שלך (מתוך ${ranked.length} מוזכרות)`+(snapAt?` · Reddit ${snapAt.toISOString().slice(0,16).replace('T',' ')} UTC`:'');
@@ -1463,6 +1463,7 @@ async function refitForYou(){
         tint:s.tint,g:s.g,d:s.d,like:s.like,est:true,tm:s.tm,st:s.st,prov:s.prov,provList:s.provList,yt:s.yt,
         poster:s.poster,tmid:s.tmid,cast:s.cast,favActors:s.favActors||null,brk:s.brk||null,mdlU:s.mdlU,imdbU:s.imdbU}))
     }));}catch(e){}
+    try{ sharedPut('foryou',JSON.parse(localStorage.getItem('krdb_foryou')||'null')); }catch(e){}
     st.textContent=`הרשימה עודכנה: ${removed} ירדו, ${added} נוספו`;
   }catch(e){ st.textContent='שגיאה: '+(e.message||''); }
   btn.disabled=false;
@@ -2179,7 +2180,8 @@ const OAI={
 };
 try{localStorage.removeItem('krdb_oai_key');}catch(e){}
 const AICACHE=(function(){try{return JSON.parse(localStorage.getItem('krdb_ai_cache')||'{}');}catch(e){return {};}})();
-function aiCacheSet(id,v){AICACHE[id]=v;try{localStorage.setItem('krdb_ai_cache',JSON.stringify(AICACHE));}catch(e){}}
+let SCORES_DIRTY=false;
+function aiCacheSet(id,v){v.at=Date.now();AICACHE[id]=v;SCORES_DIRTY=true;try{localStorage.setItem('krdb_ai_cache',JSON.stringify(AICACHE));}catch(e){}}
 function tasteSummary(){
   const like=[...new Set([...Object.keys(GPREF).filter(k=>GPREF[k]==='like'),...(typeof learnedGenreIds==='function'?learnedGenreIds():[])])].map(k=>GBY[k].en);
   const avoid=Object.keys(GPREF).filter(k=>GPREF[k]==='avoid').map(k=>GBY[k].en);
@@ -2377,14 +2379,38 @@ function historyBlock(){
   return [loved.length?`Loved (9-10) — these define the target:\n- ${loved.join('\n- ')}`:'',liked.length?`Liked (8):\n- ${liked.join('\n- ')}`:'',fine.length?`Fine (6-7):\n- ${fine.join('\n- ')}`:'',rejected.length?`Rejected or dropped — the strongest negative evidence:\n- ${rejected.join('\n- ')}`:''].filter(Boolean).join('\n');
 }
 (function(){const b=document.getElementById('learnBtn'); if(b) b.onclick=()=>learnTaste({force:true}); renderLearned();})();
+// ====== SHARED STATE (05-09-26): every device sees the same computed results ======
+// The Worker stores small JSON files in the repo (state/<key>.json). The first device to compute writes; the others
+// read and skip the work. Tolerates an older Worker without the route (GET 404/405 → nothing happens).
+let SOCIAL_DIRTY=false, DISC_DIRTY=false, REVIEW_DIRTY=false;
+async function sharedGet(key){ try{ const r=await fetch(WORKER_URL+'/state/'+key,{cache:'no-store'}); if(!r.ok) return null; return await r.json(); }catch(e){ return null; } }
+async function sharedPut(key,obj){ try{ const r=await fetch(WORKER_URL+'/state/'+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}); return r.ok; }catch(e){ return false; } }
+async function pullShared(){
+  const [sc,so,di,rv,fy]=await Promise.all([sharedGet('scores'),sharedGet('social'),sharedGet('disc'),sharedGet('review'),sharedGet('foryou')]);
+  // scores: newer entry wins, per title
+  if(sc&&sc.entries){ let n=0; Object.entries(sc.entries).forEach(([id,v])=>{ if(!v||v.ver!==AI_VER) return; const l=AICACHE[id]; if(!l||(v.at||0)>(l.at||0)){ AICACHE[id]=v; n++; } }); if(n){ try{localStorage.setItem('krdb_ai_cache',JSON.stringify(AICACHE));}catch(e){} } }
+  if(so&&Array.isArray(so.items)&&(so.ts||0)>(SOCIAL.ts||0)){ SOCIAL.ts=so.ts; SOCIAL.items=so.items; SOCIAL.snap=so.snap||null; try{localStorage.setItem('krdb_social',JSON.stringify(SOCIAL));}catch(e){} renderRecs(); }
+  if(di&&Array.isArray(di.cards)&&di.cards.length){ const yrs=PREF.era==='new2'?2:PREF.era==='classics'?8:PREF.era==='new5'?5:2; const loc=(function(){try{return JSON.parse(localStorage.getItem('krdb_disc:'+yrs)||'null');}catch(e){return null;}})(); if(di.yrs===yrs&&(di.ts||0)>((loc&&loc.ts)||0)){ try{localStorage.setItem('krdb_disc:'+yrs,JSON.stringify({ts:di.ts,v:di.cards}));}catch(e){} DISC=di.cards; renderDisc(); } }
+  if(rv&&rv.map&&rv.lh===learnedHash()&&rv.ver===AI_VER){ cacheSet('krdb_review',{lh:rv.lh,ver:rv.ver,map:rv.map}); shows.forEach(s=>{ if(s.review===undefined||s.review===null){ const v=rv.map[s.t.toLowerCase()]; if(v!=null) s.review=v; } }); render(currentFilter); }
+  if(fy&&fy.keep){ let loc=null; try{loc=JSON.parse(localStorage.getItem('krdb_foryou')||'null');}catch(e){} if((fy.ts||0)>((loc&&loc.ts)||0)){ try{localStorage.setItem('krdb_foryou',JSON.stringify(fy));}catch(e){} applyFitState(); render(currentFilter); } }
+}
+async function pushShared(){
+  const lh=learnedHash();
+  if(SCORES_DIRTY){ const entries={}; Object.entries(AICACHE).forEach(([id,v])=>{ if(v&&v.parts&&v.ver===AI_VER&&(v.lh||'')===lh) entries[id]=v; }); if(await sharedPut('scores',{ts:Date.now(),lh,entries})) SCORES_DIRTY=false; }
+  if(SOCIAL_DIRTY){ if(await sharedPut('social',{ts:SOCIAL.ts,snap:SOCIAL.snap||null,items:SOCIAL.items})) SOCIAL_DIRTY=false; }
+  if(DISC_DIRTY){ const yrs=PREF.era==='new2'?2:PREF.era==='classics'?8:PREF.era==='new5'?5:2; if(await sharedPut('disc',{ts:Date.now(),yrs,cards:DISC})) DISC_DIRTY=false; }
+  if(REVIEW_DIRTY){ const rv=cacheGet('krdb_review',0); if(rv&&await sharedPut('review',rv)) REVIEW_DIRTY=false; }
+}
 // ====== ALWAYS CURRENT (05-09-26): one chain per page open, triggered by whatever changed ======
 async function runScoreChain(){
   if(window.__chain) return window.__chain;
   window.__chain=(async()=>{
+    try{ await pullShared(); }catch(e){}
     try{ await maybeLearn(); }catch(e){}
     try{ await refreshSocial({auto:true}); }catch(e){}
     try{ await autoScoreNew(); }catch(e){}
     try{ await reviewForYou(); }catch(e){}
+    try{ await pushShared(); }catch(e){}
   })();
   try{ await window.__chain; } finally { window.__chain=null; }
 }
@@ -2408,7 +2434,7 @@ async function reviewForYou(){
   await autoScore(cards,{skipLow:false});
   const map={};
   cards.forEach(c=>{ const a=AICACHE[c.id]; if(!a||!a.parts||(a.lh||'')!==lh) return; const ai=finalScore(a,bonusesFor(c.cast),0); const s=c.__s; s.review=Math.abs(ai-s.m)>=15?ai:null; map[s.t.toLowerCase()]=s.review; });
-  cacheSet('krdb_review',{lh,ver:AI_VER,map});
+  cacheSet('krdb_review',{lh,ver:AI_VER,map}); REVIEW_DIRTY=true;
   render(currentFilter);
 }
 // ENGINE v2 (05-09-26): realism redefined after Agent Kim Reactivated (cartoonishness is the failure, not competence),
@@ -2755,7 +2781,7 @@ async function discover(){
       }catch(e){}
       return c;
     }));
-    DISC=cards; cacheSet(dkey,cards);
+    DISC=cards; cacheSet(dkey,cards); DISC_DIRTY=true;
     renderDisc();
     document.getElementById('discover').hidden=false;
 }
