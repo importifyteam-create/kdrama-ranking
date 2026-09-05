@@ -478,7 +478,7 @@
 </div>
 
 <script>
-const BUILD=1788613742;
+const BUILD=1788613839;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 (async()=>{
   try{
@@ -748,6 +748,7 @@ function render(filter){
 
 // ====== העשרה חיה מ-TMDB ======
 const TMDB_KEY="fd37a1230832a8c38f699f082fa16110";
+var LAST_SCAN="2026-09-05"; // מתי קלוד עיבד לאחרונה (מתעדכן בכל רגנרציה); var so it exists before applyFitState() runs at init
 let currentFilter='all';
 let FORYOU_LIMIT=20;
 const F={plat:'all',score:0,year:'all',actor:''};
@@ -1698,7 +1699,7 @@ const UNSEEN=new Set(); // הוסר ידנית מ"ראיתי"
 const SEENDEC=new Set();// הכרעה אחרונה לכל כותר
 const SKIPDEC=new Set();// הכרעה אחרונה ל"מעניין"
 const WLDEC=new Set();  // כותרים שכבר הוחלט לגביהם ברשימת הצפייה (החדש ביותר קובע)
-const LAST_SCAN="2026-09-05"; // מתי קלוד עיבד לאחרונה (מתעדכן בכל רגנרציה)
+// LAST_SCAN is declared near the top of the script (it is needed at init by applyFitState); update it there.
 let pendingCount=0;
 function statusOf(title){
   const k=(title||'').toLowerCase();
