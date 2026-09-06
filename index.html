@@ -479,7 +479,7 @@
 </div>
 
 <script>
-const BUILD=1788665484;
+const BUILD=1788665670;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 // Checked at load AND every time the tab comes back into view (06-09-26): a tab left open for a day never saw new
 // builds before, which is how Moshe missed the engine picks. Never reloads while the tab is in active use.
@@ -2422,7 +2422,7 @@ async function autoActorPicks(){
   try{ await window.__actorCandsReady; }catch(e){}
   const lh=learnedHash(); if(!lh) return;
   const saved=cacheGet('krdb_picks',0);
-  const dts=(function(){ try{ const yrs=PREF.era==='new2'?2:PREF.era==='classics'?8:PREF.era==='new5'?5:2; const c=JSON.parse(localStorage.getItem('krdb_disc2:'+yrs)||'null'); return c?c.ts:0; }catch(e){ return 0; } })();
+  const dts=(function(){ try{ const c=JSON.parse(localStorage.getItem('krdb_disc2')||'null'); return c?c.ts:0; }catch(e){ return 0; } })();
   if(saved&&saved.lh===lh&&saved.ver===AI_VER&&(saved.dts||0)===dts){ applyPicks(saved); cleanupPicks(); render(currentFilter); return; }
   for(let i=shows.length-1;i>=0;i--) if(shows[i].pick) shows.splice(i,1); // profile, engine or discovery pool changed: start over
   const cands=ACTORCANDS.filter(c=>!VETOED.has(c.t.toLowerCase())&&!SKIP.has(c.t.toLowerCase())&&!shows.some(x=>x.t.toLowerCase()===c.t.toLowerCase())&&statusOf(c.t)!=='watched'&&!inWatchlist(c.t)).sort((a,b)=>(b.m||0)-(a.m||0)).slice(0,40);
@@ -2443,7 +2443,7 @@ async function autoActorPicks(){
       mdlU:`https://www.themoviedb.org/tv/${c.id}`,imdbU:c.imdbU||`https://www.themoviedb.org/tv/${c.id}`});
   });
   // discovery picks: strong finds that are too old for "New and relevant" (scored already by autoScoreNew)
-  DISC.filter(c=>!isNewShow(c)&&!VETOED.has(c.t.toLowerCase())&&!SKIP.has(c.t.toLowerCase())&&!shows.some(x=>x.t.toLowerCase()===c.t.toLowerCase())&&!added.some(a=>a.t.toLowerCase()===c.t.toLowerCase())&&statusOf(c.t)!=='watched'&&!inWatchlist(c.t)).forEach(c=>{
+  DISC.filter(c=>!isNewShow(c)&&eraOk(c)&&!VETOED.has(c.t.toLowerCase())&&!SKIP.has(c.t.toLowerCase())&&!shows.some(x=>x.t.toLowerCase()===c.t.toLowerCase())&&!added.some(a=>a.t.toLowerCase()===c.t.toLowerCase())&&statusOf(c.t)!=='watched'&&!inWatchlist(c.t)).forEach(c=>{
     const v=AICACHE[c.id]; if(!v||!v.parts||(v.lh||'')!==lh) return;
     const eps=parseInt((/(\d+) פרקים/.exec(c.st||'')||[])[1]);
     const B=bonusesFor(c.cast||[]), ga=genreAdjust(c.genre_ids)+lengthAdjust(eps);
@@ -2467,7 +2467,7 @@ async function pullShared(){
   // scores: newer entry wins, per title
   if(sc&&sc.entries){ let n=0; Object.entries(sc.entries).forEach(([id,v])=>{ if(!v||v.ver!==AI_VER) return; const l=AICACHE[id]; if(!l||(v.at||0)>(l.at||0)){ AICACHE[id]=v; n++; } }); if(n){ try{localStorage.setItem('krdb_ai_cache',JSON.stringify(AICACHE));}catch(e){} } }
   if(so&&Array.isArray(so.items)&&(so.ts||0)>(SOCIAL.ts||0)){ SOCIAL.ts=so.ts; SOCIAL.items=so.items; SOCIAL.snap=so.snap||null; try{localStorage.setItem('krdb_social',JSON.stringify(SOCIAL));}catch(e){} renderRecs(); }
-  if(di&&di.v===2&&Array.isArray(di.cards)&&di.cards.length){ const yrs=PREF.era==='new2'?2:PREF.era==='classics'?8:PREF.era==='new5'?5:2; const loc=(function(){try{return JSON.parse(localStorage.getItem('krdb_disc2:'+yrs)||'null');}catch(e){return null;}})(); if(di.yrs===yrs&&(di.ts||0)>((loc&&loc.ts)||0)){ try{localStorage.setItem('krdb_disc2:'+yrs,JSON.stringify({ts:di.ts,v:di.cards}));}catch(e){} DISC=di.cards; renderDisc(); } }
+  if(di&&di.v===2&&Array.isArray(di.cards)&&di.cards.length){ const loc=(function(){try{return JSON.parse(localStorage.getItem('krdb_disc2')||'null');}catch(e){return null;}})(); if((di.ts||0)>((loc&&loc.ts)||0)){ try{localStorage.setItem('krdb_disc2',JSON.stringify({ts:di.ts,v:di.cards}));}catch(e){} DISC=di.cards; renderDisc(); } }
   if(rv&&rv.map&&rv.lh===learnedHash()&&rv.ver===AI_VER){ cacheSet('krdb_review',{lh:rv.lh,ver:rv.ver,map:rv.map}); shows.forEach(s=>{ if(s.review===undefined||s.review===null){ const v=rv.map[s.t.toLowerCase()]; if(v!=null) s.review=v; } }); render(currentFilter); }
   if(fy&&fy.keep&&!fitIsStale(fy)){ let loc=null; try{loc=JSON.parse(localStorage.getItem('krdb_foryou')||'null');}catch(e){} if((fy.ts||0)>((loc&&loc.ts)||0)){ try{localStorage.setItem('krdb_foryou',JSON.stringify(fy));}catch(e){} applyFitState(); render(currentFilter); } }
 }
@@ -2475,7 +2475,7 @@ async function pushShared(){
   const lh=learnedHash();
   if(SCORES_DIRTY){ const entries={}; Object.entries(AICACHE).forEach(([id,v])=>{ if(v&&v.parts&&v.ver===AI_VER&&(v.lh||'')===lh) entries[id]=v; }); if(await sharedPut('scores',{ts:Date.now(),lh,entries})) SCORES_DIRTY=false; }
   if(SOCIAL_DIRTY){ if(await sharedPut('social',{ts:SOCIAL.ts,snap:SOCIAL.snap||null,items:SOCIAL.items})) SOCIAL_DIRTY=false; }
-  if(DISC_DIRTY){ const yrs=PREF.era==='new2'?2:PREF.era==='classics'?8:PREF.era==='new5'?5:2; if(await sharedPut('disc',{v:2,ts:Date.now(),yrs,cards:DISC})) DISC_DIRTY=false; }
+  if(DISC_DIRTY){ if(await sharedPut('disc',{v:2,ts:Date.now(),yrs:5,cards:DISC})) DISC_DIRTY=false; }
   if(REVIEW_DIRTY){ const rv=cacheGet('krdb_review',0); if(rv&&await sharedPut('review',rv)) REVIEW_DIRTY=false; }
   if(PICKS_DIRTY){ const pk=cacheGet('krdb_picks',0); if(pk&&await sharedPut('picks',pk)) PICKS_DIRTY=false; }
 }
@@ -2812,8 +2812,8 @@ function estMatch(x){
 }
 async function discover(){
   if(!TMDB_KEY) return;
-    const yrs=PREF.era==='new2'?2:PREF.era==='classics'?8:PREF.era==='new5'?5:2;
-    const dkey='krdb_disc2:'+yrs;
+    const yrs=5; // one fixed pool; the Recency setting is applied when picking (eraOk), because discover() runs at init before settings load
+    const dkey='krdb_disc2';
     const cachedDisc=cacheGet(dkey,6*3600*1000);
     if(cachedDisc&&cachedDisc.length){ DISC=cachedDisc; renderDisc(); document.getElementById('discover').hidden=false; return; } // instant; refreshed every 6 h
     const since=new Date(Date.now()-yrs*365*24*3600*1000).toISOString().slice(0,10);
@@ -2868,6 +2868,10 @@ async function discover(){
 function effMatch(c){return AICACHE[c.id]?AICACHE[c.id].match:(c.m||0);}
 // "New and relevant" = premiered in the last 12 months, or still airing. Older discoveries stay in the pool: the good
 // ones join For You as engine picks (see autoActorPicks), so a 2024 show no longer shows up as "new".
+function eraOk(c){ // the Recency setting: how far back an engine pick may reach
+  const yrs=PREF.era==='new2'?2:PREF.era==='new5'?5:0; if(!yrs||!c.air) return true;
+  const d=Date.parse(c.air); return !Number.isFinite(d)||(Date.now()-d)<yrs*365*24*3600*1000;
+}
 function isNewShow(c){
   if(/עדיין משודרת|בהפקה/.test(c.st||'')) return true;
   if(c.air){ const d=Date.parse(c.air); return Number.isFinite(d)&&(Date.now()-d)<365*24*3600*1000; }
