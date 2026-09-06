@@ -479,7 +479,7 @@
 </div>
 
 <script>
-const BUILD=1788665670;
+const BUILD=1788665817;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 // Checked at load AND every time the tab comes back into view (06-09-26): a tab left open for a day never saw new
 // builds before, which is how Moshe missed the engine picks. Never reloads while the tab is in active use.
@@ -2008,7 +2008,7 @@ async function hydrateLists(){
   const sortRecs=()=>RECS.sort((a,b)=>order.indexOf(a.t.toLowerCase())-order.indexOf(b.t.toLowerCase()));
   sortRecs(); renderRecs();
   // 2. the other strips start now, not after this one
-  hydrateFavActors();
+  window.__favReady=hydrateFavActors(); // the picks pass waits on this: on a first visit the actor list is still being fetched
   runScoreChain(); // learn from new ratings → social → new titles → For You review; all in the background
   // 3. network only for what the cache lacks, all at once
   const store=Object.assign({},cached);
@@ -2419,7 +2419,8 @@ function applyPicks(P){
 }
 function cleanupPicks(){ shows.forEach(s=>{ const k=s.t.toLowerCase(); if(s.pick==='actor'&&!s.moved&&(SKIP.has(k)||FEEDBACK.has(k)||WATCHED.some(w=>w.t.toLowerCase()===k))) s.moved=true; }); }
 async function autoActorPicks(){
-  try{ await window.__actorCandsReady; }catch(e){}
+  try{ await window.__favReady; }catch(e){}       // favorites resolved (search/person)
+  try{ await window.__actorCandsReady; }catch(e){} // their filmographies (tv_credits) → ACTORCANDS
   const lh=learnedHash(); if(!lh) return;
   const saved=cacheGet('krdb_picks',0);
   const dts=(function(){ try{ const c=JSON.parse(localStorage.getItem('krdb_disc2')||'null'); return c?c.ts:0; }catch(e){ return 0; } })();
