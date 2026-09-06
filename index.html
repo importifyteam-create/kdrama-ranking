@@ -478,15 +478,19 @@
 </div>
 
 <script>
-const BUILD=1788619616;
+const BUILD=1788664542;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
-(async()=>{
+// Checked at load AND every time the tab comes back into view (06-09-26): a tab left open for a day never saw new
+// builds before, which is how Moshe missed the engine picks. Never reloads while the tab is in active use.
+async function checkBuild(){
   try{
     const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});
     const v=await r.json();
     if(v&&v.build>BUILD&&!location.search.includes('v='+v.build)) location.replace(location.pathname+'?v='+v.build);
   }catch(e){}
-})();
+}
+checkBuild();
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkBuild(); });
 window.addEventListener('error',e=>{try{const d=document.getElementById('dataLine');if(d)d.textContent='שגיאת דף: '+e.message;}catch(_){}});
 const shows=[
  {t:"Honour",tmid:287346,m:93,o:"KR",y:2026,tier:1,mdl:"7.8",plat:"ENA",f:["other"],tint:"var(--tint-legal)",g:"מתח · מסתורין · משפטי · פשע",d:"שלוש עורכות דין שמייצגות נשים קורבנות פשע, וסוד בן 20 שנה שחוזר. לנקמה אין התיישנות.",like:["Beyond the Bar","As You Stood By"],mdlU:"https://mydramalist.com/788434-honor",imdbU:"https://www.imdb.com/title/tt39301725/"},
