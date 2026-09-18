@@ -485,7 +485,7 @@
 </div>
 
 <script>
-const BUILD=1789657778;
+const BUILD=1789696786;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 // Checked at load AND every time the tab comes back into view (06-09-26): a tab left open for a day never saw new
 // builds before, which is how Moshe missed the engine picks. Never reloads while the tab is in active use.
@@ -786,6 +786,7 @@ let FORYOU_LIMIT=20;
 const F={plat:'all',score:0,year:'all',actor:''};
 
 async function enrich(s){
+  if(s.mv) return; // a film pick already carries everything; the tv endpoint would 404
   try{
     let hit=null;
     if(!s.tmid){ // only titles without a pinned id go through the name search (curated entries carry tmid since 05-09-26)
@@ -829,7 +830,7 @@ document.querySelectorAll('.chip').forEach(btn=>{
     currentFilter=btn.dataset.f;
     F.plat=btn.dataset.f;
     render(currentFilter);
-    renderDisc();
+    renderDisc(); renderMovies();
   });
 });
 document.getElementById('fScore').addEventListener('change',e=>{F.score=parseFloat(e.target.value)||0;render(currentFilter);renderDisc();renderMovies();});
@@ -1425,6 +1426,7 @@ async function buildActorCands(){
 
 // ====== עדכון "בשבילך" לפי הטעם הנוכחי ======
 const KEEP=70, ADD=75; // סף להישארות ברשימה, וסף גבוה יותר לכניסה אליה
+const FILM_PICKS=10; // at most this many films in For You (18-09-26)
 async function scoreShow(s){
   if(s.tmid&&AICACHE[s.tmid]&&AICACHE[s.tmid].parts) return AICACHE[s.tmid].match;
   let card=null;
@@ -2450,14 +2452,15 @@ function applyPicks(P){
   if(n){ shows.sort((a,b)=>(b.m||0)-(a.m||0)); renumber(); }
   return n;
 }
-function cleanupPicks(){ shows.forEach(s=>{ const k=s.t.toLowerCase(); if(s.pick==='actor'&&!s.moved&&(SKIP.has(k)||FEEDBACK.has(k)||WATCHED.some(w=>w.t.toLowerCase()===k))) s.moved=true; }); }
+function cleanupPicks(){ shows.forEach(s=>{ const k=s.t.toLowerCase(); if(s.pick&&!s.moved&&(SKIP.has(k)||FEEDBACK.has(k)||WATCHED.some(w=>w.t.toLowerCase()===k))) s.moved=true; }); }
 async function autoActorPicks(){
   try{ await window.__favReady; }catch(e){}       // favorites resolved (search/person)
   try{ await window.__actorCandsReady; }catch(e){} // their filmographies (tv_credits) → ACTORCANDS
   const lh=learnedHash(); if(!lh) return;
   const saved=cacheGet('krdb_picks',0);
   const dts=(function(){ try{ const c=JSON.parse(localStorage.getItem('krdb_disc2')||'null'); return c?c.ts:0; }catch(e){ return 0; } })();
-  if(saved&&saved.lh===lh&&saved.ver===AI_VER&&(saved.dts||0)===dts){ applyPicks(saved); cleanupPicks(); render(currentFilter); return; }
+  const mts=cacheTs(MOVIES_KEY), pe=(PREF.era||'')+'|'+(PREF.fera||''); // film pool and both recency windows are part of the signature
+  if(saved&&saved.lh===lh&&saved.ver===AI_VER&&(saved.dts||0)===dts&&(saved.mts||0)===mts&&(saved.pe||'')===pe){ applyPicks(saved); cleanupPicks(); render(currentFilter); return; }
   for(let i=shows.length-1;i>=0;i--) if(shows[i].pick) shows.splice(i,1); // profile, engine or discovery pool changed: start over
   const cands=ACTORCANDS.filter(c=>!VETOED.has(c.t.toLowerCase())&&!SKIP.has(c.t.toLowerCase())&&!shows.some(x=>x.t.toLowerCase()===c.t.toLowerCase())&&statusOf(c.t)!=='watched'&&!inWatchlist(c.t)).sort((a,b)=>(b.m||0)-(a.m||0)).slice(0,40);
   const cards=[];
@@ -2489,7 +2492,17 @@ async function autoActorPicks(){
       tm:c.tm,st:c.st,prov:c.prov,yt:c.yt,poster:c.poster,tmid:c.id,cast:c.cast,favActors:B.fav.names.length?B.fav.names:undefined,air:c.air||'',
       mdlU:`https://www.themoviedb.org/tv/${c.id}`,imdbU:c.imdbU||`https://www.themoviedb.org/tv/${c.id}`});
   });
-  const P={ts:Date.now(),lh,ver:AI_VER,dts,added};
+  // film picks (18-09-26): the same bar as the other engine picks, capped at the best FILM_PICKS so the list stays series-led
+  MOVIES.filter(c=>movieOk(c)&&!shows.some(x=>x.t.toLowerCase()===c.t.toLowerCase())&&!added.some(a=>a.t.toLowerCase()===c.t.toLowerCase()))
+    .map(c=>{ const v=AICACHE[c.id]; if(!v||!v.parts||(v.lh||'')!==lh) return null; const B=bonusesFor(c.cast||[]); return {c,v,B,m:finalScore(v,B,0)}; })
+    .filter(x=>x&&x.m>=ADD).sort((a,b)=>b.m-a.m).slice(0,FILM_PICKS).forEach(({c,v,B,m})=>{
+      added.push({t:c.t,y:c.y,m,o:'KR',tier:m>=85?1:m>=72?2:3,mdl:null,plat:c.prov||'',f:[],provList:c.provList,
+        brk:{ai:v.match,parts:v.parts||null,gallup:B.gallup,fav:B.fav,genre:0,final:m},
+        tint:'var(--tint-crime)',g:c.g,d:v.why||'',like:[v.closest||'הטעם שלך'],est:true,pick:'film',mv:true,
+        tm:c.tm,st:c.st,prov:c.prov,yt:c.yt,poster:c.poster,tmid:c.id,cast:c.cast,favActors:B.fav.names.length?B.fav.names:undefined,air:c.air||'',
+        mdlU:`https://mydramalist.com/search?q=${encodeURIComponent(c.t)}`,imdbU:c.imdbU||`https://www.themoviedb.org/movie/${c.mid}`});
+    });
+  const P={ts:Date.now(),lh,ver:AI_VER,dts,mts,pe,added};
   cacheSet('krdb_picks',P); PICKS_DIRTY=true;
   applyPicks(P); cleanupPicks(); render(currentFilter);
 }
@@ -2497,8 +2510,8 @@ async function sharedGet(key){ try{ const r=await fetch(WORKER_URL+'/state/'+key
 async function sharedPut(key,obj){ try{ const r=await fetch(WORKER_URL+'/state/'+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}); return r.ok; }catch(e){ return false; } }
 async function pullShared(){
   const [sc,so,di,rv,fy,pk,mo]=await Promise.all([sharedGet('scores'),sharedGet('social'),sharedGet('disc'),sharedGet('review'),sharedGet('foryou'),sharedGet('picks'),sharedGet('movies')]);
-  if(mo&&mo.v===2&&Array.isArray(mo.cards)&&mo.cards.length&&(mo.ts||0)>cacheTs(MOVIES_KEY)){ try{localStorage.setItem(MOVIES_KEY,JSON.stringify({ts:mo.ts,v:mo.cards}));}catch(e){} MOVIES=mo.cards; mvRemember(MOVIES); }
-  if(pk&&Array.isArray(pk.added)&&pk.lh===learnedHash()&&pk.ver===AI_VER){ const loc=cacheGet('krdb_picks',0); if((pk.ts||0)>((loc&&loc.ts)||0)){ cacheSet('krdb_picks',pk); if(applyPicks(pk)) render(currentFilter); } }
+  if(mo&&mo.v===3&&Array.isArray(mo.cards)&&mo.cards.length&&(mo.ts||0)>cacheTs(MOVIES_KEY)){ try{localStorage.setItem(MOVIES_KEY,JSON.stringify({ts:mo.ts,v:mo.cards}));}catch(e){} MOVIES=mo.cards; mvRemember(MOVIES); }
+  if(pk&&Array.isArray(pk.added)&&pk.lh===learnedHash()&&pk.ver===AI_VER&&(pk.mts||0)===cacheTs(MOVIES_KEY)&&(pk.pe||'')===(PREF.era||'')+'|'+(PREF.fera||'')){ const loc=cacheGet('krdb_picks',0); if((pk.ts||0)>((loc&&loc.ts)||0)){ cacheSet('krdb_picks',pk); if(applyPicks(pk)) render(currentFilter); } }
   // scores: newer entry wins, per title
   if(sc&&sc.entries){ let n=0; Object.entries(sc.entries).forEach(([id,v])=>{ if(!v||v.ver!==AI_VER) return; const l=AICACHE[id]; if(!l||(v.at||0)>(l.at||0)){ AICACHE[id]=v; n++; } }); if(n){ try{localStorage.setItem('krdb_ai_cache',JSON.stringify(AICACHE));}catch(e){} } }
   if(so&&Array.isArray(so.items)&&(so.ts||0)>(SOCIAL.ts||0)){ SOCIAL.ts=so.ts; SOCIAL.items=so.items; SOCIAL.snap=so.snap||null; try{localStorage.setItem('krdb_social',JSON.stringify(SOCIAL));}catch(e){} renderRecs(); }
@@ -2514,7 +2527,7 @@ async function pushShared(){
   if(DISC_DIRTY){ if(await sharedPut('disc',{v:2,ts:Date.now(),yrs:5,cards:DISC})) DISC_DIRTY=false; }
   if(REVIEW_DIRTY){ const rv=cacheGet('krdb_review',0); if(rv&&await sharedPut('review',rv)) REVIEW_DIRTY=false; }
   if(PICKS_DIRTY){ const pk=cacheGet('krdb_picks',0); if(pk&&await sharedPut('picks',pk)) PICKS_DIRTY=false; }
-  if(MOVIES_DIRTY&&MOVIES.length){ if(await sharedPut('movies',{v:2,ts:cacheTs(MOVIES_KEY)||Date.now(),cards:MOVIES})) MOVIES_DIRTY=false; }
+  if(MOVIES_DIRTY&&MOVIES.length){ if(await sharedPut('movies',{v:3,ts:cacheTs(MOVIES_KEY)||Date.now(),cards:MOVIES})) MOVIES_DIRTY=false; }
 }
 // ====== ALWAYS CURRENT (05-09-26): one chain per page open, triggered by whatever changed ======
 async function runScoreChain(){
@@ -2996,7 +3009,7 @@ function renderDisc(){
 // window (Settings → Film recency, PREF.fera; unset = classics welcome) — the series Recency never touches them. The
 // window and the avoided genres apply at pick time, because both load after init. The strip is the best 24 by final score (Load more adds 24), never under MOVIE_FLOOR;
 // like New and relevant it is a ranked shelf, not a verdict, and the gold number on each tile says how close the fit is.
-const MOVIE_FLOOR=60, MOVIES_KEY='krdb_movies2';
+const MOVIE_FLOOR=60, MOVIES_KEY='krdb_movies3'; // v3 18-09-26: pool gained the last-12-months query
 let MOVIE_LIMIT=24;
 function filmEraOk(c){
   const yrs=PREF.fera==='f5'?5:PREF.fera==='f10'?10:0; if(!yrs||!c.air) return true;
@@ -3064,11 +3077,13 @@ async function refreshMovies(){
   const qs=[];
   for(let p=1;p<=11;p++) qs.push(`${base}&with_genres=80%7C53%7C9648&vote_average.gte=6.5&vote_count.gte=60&page=${p}`); // crime, thriller, mystery: the core
   for(let p=1;p<=4;p++) qs.push(`${base}&with_genres=18&vote_average.gte=7.2&vote_count.gte=120&page=${p}`); // drama: only the well rated
+  const recent=new Date(Date.now()-365*24*3600*1000).toISOString().slice(0,10); // last 12 months: the vote floor drops to 10, as the series discovery does for fresh titles
+  for(let p=1;p<=2;p++) qs.push(`${base.replace(/primary_release_date\.gte=[^&]+/,'primary_release_date.gte='+recent)}&with_genres=80%7C53%7C9648%7C18&vote_average.gte=6&vote_count.gte=10&page=${p}`);
   const pages=await Promise.all(qs.map(u=>fetch(u).then(r=>r.json()).catch(()=>({}))));
   const dedup=new Map();
   pages.flatMap(p=>p.results||[]).forEach(x=>{ if(!dedup.has(x.id)) dedup.set(x.id,x); });
   const found=[...dedup.values()].filter(x=>x.poster_path&&!(x.genre_ids||[]).some(i=>i===16||i===99||i===10402))
-    .sort((a,b)=>estMovie(b.vote_average,b.genre_ids||[])-estMovie(a.vote_average,a.genre_ids||[])).slice(0,170);
+    .sort((a,b)=>estMovie(b.vote_average,b.genre_ids||[])-estMovie(a.vote_average,a.genre_ids||[])).slice(0,190);
   if(!found.length) return;
   const cards=[], titles=new Set();
   for(let i=0;i<found.length;i+=20){
@@ -3076,7 +3091,7 @@ async function refreshMovies(){
     got.forEach(c=>{ if(!c) return; const k=c.t.toLowerCase(); if(titles.has(k)||TVBAKED.has(k)) return; titles.add(k); cards.push(c); });
   }
   if(!cards.length) return;
-  MOVIES=cards; cacheSet(MOVIES_KEY,cards); MOVIES_DIRTY=true; try{localStorage.removeItem('krdb_movies');}catch(e){} mvRemember(cards);
+  MOVIES=cards; cacheSet(MOVIES_KEY,cards); MOVIES_DIRTY=true; try{localStorage.removeItem('krdb_movies');localStorage.removeItem('krdb_movies2');}catch(e){} mvRemember(cards);
   renderMovies();
 }
 function movieOk(c){
@@ -3086,7 +3101,11 @@ function movieOk(c){
 function movieScore(c){ const a=AICACHE[c.id]; return (a&&a.parts)?finalScore(a,bonusesFor(c.cast||[]),0):null; }
 function renderMovies(){
   const el=document.getElementById('movieGrid'); if(!el) return;
-  const all=MOVIES.filter(movieOk).filter(passes).map(c=>({c,m:movieScore(c)})).filter(x=>x.m!=null&&x.m>=MOVIE_FLOOR).sort((a,b)=>b.m-a.m);
+  // with a year / platform / score / actor filter on, the row is "the best of that slice": the floor drops to 45 so it never
+  // empties (no 2025-26 film clears 60); the gold number still says how weak the fit is
+  const filtered=F.plat!=='all'||F.score||F.year!=='all'||F.actor;
+  const floor=filtered?45:MOVIE_FLOOR;
+  const all=MOVIES.filter(movieOk).filter(passes).map(c=>({c,m:movieScore(c)})).filter(x=>x.m!=null&&x.m>=floor).sort((a,b)=>b.m-a.m);
   const more=document.getElementById('movieMore'); if(more){ more.hidden=all.length<=MOVIE_LIMIT; more.onclick=()=>{MOVIE_LIMIT+=24;renderMovies();}; }
   const top=all.slice(0,MOVIE_LIMIT);
   document.getElementById('movieStrip').hidden=!top.length;
