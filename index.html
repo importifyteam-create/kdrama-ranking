@@ -485,7 +485,7 @@
 </div>
 
 <script>
-const BUILD=1789696786;
+const BUILD=1789696890;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 // Checked at load AND every time the tab comes back into view (06-09-26): a tab left open for a day never saw new
 // builds before, which is how Moshe missed the engine picks. Never reloads while the tab is in active use.
@@ -2449,7 +2449,7 @@ function applyPicks(P){
   P.added=P.added.filter(a=>!VETOED.has((a.t||'').toLowerCase()));
   let n=0;
   P.added.forEach(a=>{ if(shows.some(s=>s.t.toLowerCase()===a.t.toLowerCase())) return; shows.push(Object.assign({},a,{pick:a.pick||'actor',est:true})); try{KNOWN.add(a.t.toLowerCase());}catch(e){} n++; });
-  if(n){ shows.sort((a,b)=>(b.m||0)-(a.m||0)); renumber(); }
+  if(n){ shows.sort((a,b)=>(b.m||0)-(a.m||0)); renumber(); const nr=document.getElementById('nRank'); if(nr) nr.textContent=`(${shows.filter(x=>!x.moved).length})`; } // the sidebar count was set before the picks arrived
   return n;
 }
 function cleanupPicks(){ shows.forEach(s=>{ const k=s.t.toLowerCase(); if(s.pick&&!s.moved&&(SKIP.has(k)||FEEDBACK.has(k)||WATCHED.some(w=>w.t.toLowerCase()===k))) s.moved=true; }); }
