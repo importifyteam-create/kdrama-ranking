@@ -487,7 +487,7 @@
 </div>
 
 <script>
-const BUILD=1789697198;
+const BUILD=1789697350;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 // Checked at load AND every time the tab comes back into view (06-09-26): a tab left open for a day never saw new
 // builds before, which is how Moshe missed the engine picks. Never reloads while the tab is in active use.
@@ -2950,15 +2950,16 @@ function isNewShow(c){
 }
 function renderFresh(){
   const el=document.getElementById('freshGrid'); if(!el) return;
-  const top=DISC.filter(isNewShow).filter(passes).sort((a,b)=>effMatch(b)-effMatch(a)).slice(0,12);
+  const top=DISC.filter(isNewShow).filter(passes).concat(newFilms()).sort((a,b)=>effMatch(b)-effMatch(a)).slice(0,12);
   document.getElementById('freshStrip').hidden=!top.length;
   el.innerHTML=top.map(c=>`
     <div class="casttile fclick" data-id="${c.id}">
+      ${c.mv?'<span class="kind">סרט</span>':''}
       <div class="cph" style="${c.poster?`background-image:url('${c.poster}')`:''}"></div>
       <div class="cnm"><bdi>${c.t}</bdi></div>
       <div class="crl">${AICACHE[c.id]?`<span class="mgold">${AICACHE[c.id].match}</span> · `:''}${c.y}${c.tm?` · TMDB ${c.tm}`:''}</div>
     </div>`).join('');
-  el.querySelectorAll('.fclick').forEach(p=>{p.onclick=()=>openShowCard(+p.dataset.id);});
+  el.querySelectorAll('.fclick').forEach(p=>{p.onclick=()=>openShowCard(cid(p.dataset.id));});
 }
 async function aiScoreAll(){
   const btn=document.getElementById('aiScoreAll'), st=document.getElementById('aiScoreStatus');
@@ -2979,11 +2980,12 @@ async function aiScoreAll(){
 function renderDisc(){
   renderFresh();
     if(!DISC.length) return;
-    const cards=DISC.filter(isNewShow).filter(passes).sort((a,b)=>effMatch(b)-effMatch(a));
+    const cards=DISC.filter(isNewShow).filter(passes).concat(newFilms()).sort((a,b)=>effMatch(b)-effMatch(a));
     document.getElementById('discGrid').innerHTML=cards.map(c=>`
       <article class="card">
         <div class="poster dclick" data-id="${c.id}" style="background:linear-gradient(rgba(14,16,21,.15),rgba(14,16,21,.78)),url('${c.poster}') center 20%/cover no-repeat">
           <span class="mbadge" title="התאמה">${AICACHE[c.id]?AICACHE[c.id].match:c.m}</span>
+          ${c.mv?'<span class="kind">סרט</span>':''}
           <div class="ttl"><bdi>${c.t}</bdi><span class="yr">${c.y}</span></div>
         </div>
         <div class="body">
@@ -2993,18 +2995,18 @@ function renderDisc(){
           <p class="genres">${c.g}${c.st?` · ${c.st}`:''}</p>
           <p class="genres">${c.prov?`זמין בתאילנד: ${c.prov}`:'אין סטרימינג בתאילנד כרגע'}</p>
           <div class="links">
-            <a href="https://www.themoviedb.org/tv/${c.id}" target="_blank" rel="noopener">TMDB</a>
+            <a href="https://www.themoviedb.org/${c.mv?`movie/${c.mid}`:`tv/${c.id}`}" target="_blank" rel="noopener">TMDB</a>
             ${c.imdbU?`<a href="${c.imdbU}" target="_blank" rel="noopener">IMDb</a>`:''}
             <a href="${c.yt||`https://www.youtube.com/results?search_query=${encodeURIComponent(c.t+' official trailer')}`}" target="_blank" rel="noopener">טריילר</a>
             <button class="seenbtn dseen2" data-n="${c.t.replace(/"/g,'&quot;')}" data-id="${c.id}">דרג</button>
           </div>
         </div>
       </article>`).join('');
-    document.querySelectorAll('.dclick').forEach(p=>{p.onclick=()=>openShowCard(+p.dataset.id);});
+    document.querySelectorAll('.dclick').forEach(p=>{p.onclick=()=>openShowCard(cid(p.dataset.id));});
     document.querySelectorAll('.dseen2').forEach(b=>{
       const n=b.dataset.n.toLowerCase();
       if(FEEDBACK.has(n)){b.textContent='ערוך דירוג';b.classList.add('done');}
-      b.onclick=()=>openFeedback(b.dataset.n,+b.dataset.id);
+      b.onclick=()=>openFeedback(b.dataset.n,cid(b.dataset.id));
     });
 }
 // ====== MOVIES (17-09-26): Korean feature films, scored by the same engine and profile as the series ======
@@ -3094,13 +3096,15 @@ async function refreshMovies(){
     got.forEach(c=>{ if(!c) return; const k=c.t.toLowerCase(); if(titles.has(k)||TVBAKED.has(k)) return; titles.add(k); cards.push(c); });
   }
   if(!cards.length) return;
-  MOVIES=cards; cacheSet(MOVIES_KEY,cards); MOVIES_DIRTY=true; try{localStorage.removeItem('krdb_movies');localStorage.removeItem('krdb_movies2');}catch(e){} mvRemember(cards);
+  MOVIES=cards; cacheSet(MOVIES_KEY,cards); MOVIES_DIRTY=true; renderDisc(); try{localStorage.removeItem('krdb_movies');localStorage.removeItem('krdb_movies2');}catch(e){} mvRemember(cards);
   renderMovies();
 }
 function movieOk(c){
   const k=(c.t||'').toLowerCase();
   return !SKIP.has(k)&&!VETOED.has(k)&&statusOf(c.t)!=='watched'&&!inWatchlist(c.t)&&filmEraOk(c)&&!avoidedGenre(c.genre_ids);
 }
+// films released in the last 12 months join New and relevant (strip + full view); they keep their own recency/avoid rules
+function newFilms(){ return (typeof MOVIES==='undefined'?[]:MOVIES).filter(c=>isNewShow(c)&&movieOk(c)&&passes(c)); }
 function movieScore(c){ const a=AICACHE[c.id]; return (a&&a.parts)?finalScore(a,bonusesFor(c.cast||[]),0):null; }
 function renderMovies(){
   const el=document.getElementById('movieGrid'); if(!el) return;
@@ -3130,7 +3134,7 @@ async function autoScoreMovies(){
   // everything already scored stays current; of the rest, the 60 most promising per visit (the remainder follows on later visits)
   const cards=ok.filter(fresh).concat(ok.filter(c=>!fresh(c)).sort((a,b)=>effMatch(b)-effMatch(a)).slice(0,60));
   const stats=await autoScore(cards,{});
-  if(stats.triaged||stats.finals) renderMovies();
+  if(stats.triaged||stats.finals){ renderMovies(); renderDisc(); }
 }
 (function(){ const c=cacheGet(MOVIES_KEY,0); if(c&&c.length){ MOVIES=c; mvRemember(MOVIES); renderMovies(); } })(); // render-first from the last visit; the chain refreshes it
 async function discoverSafe(){try{await discover();}catch(e){}}
