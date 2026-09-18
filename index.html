@@ -487,7 +487,7 @@
 </div>
 
 <script>
-const BUILD=1789697350;
+const BUILD=1789697779;
 // בדיקת גרסה: אם השרת מחזיק גרסה חדשה יותר, טוענים מחדש בלי מטמון
 // Checked at load AND every time the tab comes back into view (06-09-26): a tab left open for a day never saw new
 // builds before, which is how Moshe missed the engine picks. Never reloads while the tab is in active use.
@@ -624,6 +624,7 @@ function renderWatched(){
 
 async function enrichWatched(){
   if(!TMDB_KEY) return;
+  try{ if(typeof mvtShared==='function') await mvtShared(); }catch(e){}
   await Promise.all(WATCHED.map(async (w,i)=>{
     try{
       const mv=mvOf(w.t);
@@ -996,7 +997,7 @@ document.getElementById('addSearch').addEventListener('input',e=>{
           PICKED[el.dataset.n]={y:el.dataset.y,poster:el.dataset.p?`https://image.tmdb.org/t/p/w185${el.dataset.p}`:null};
           document.getElementById('addResults').innerHTML='';
           document.getElementById('addSearch').value='';
-          if(isMid(el.dataset.id)) mvRemember([{t:el.dataset.n,mid:+el.dataset.id.slice(1),y:el.dataset.y,poster:PICKED[el.dataset.n].poster}]); // so the title still resolves to the film after a reload
+          if(isMid(el.dataset.id)) mvRemember([{t:el.dataset.n,mid:+el.dataset.id.slice(1),y:el.dataset.y,poster:PICKED[el.dataset.n].poster}],true); // so the title still resolves to the film after a reload
           openFeedback(el.dataset.n,cid(el.dataset.id));
         };
       });
@@ -1059,7 +1060,7 @@ async function openFeedback(title,tmdbId){
 
 document.getElementById('fbCancel').onclick=()=>document.getElementById('fbOverlay').classList.remove('open');
 document.getElementById('fbOverlay').addEventListener('click',e=>{if(e.target.id==='fbOverlay')document.getElementById('fbOverlay').classList.remove('open');});
-const WORKER_URL="https://kdrama-feedback.vaintrov.workers.dev";
+const WORKER_URL="https://kdrama-feedback.vaintrov.workers.dev"; window.__workerReady=true; // guards callers that may run before this line at init
 document.getElementById('fbSend').onclick=async ()=>{
   const rating=document.getElementById('fbRating').value;
   const liked=document.getElementById('fbLiked').value.trim();
@@ -2050,6 +2051,7 @@ async function hydrateLists(){
   // 3. network only for what the cache lacks, all at once
   const store=Object.assign({},cached);
   if(missing.length){
+    try{ await mvtShared(); }catch(e){}
     const got=await Promise.all(missing.map(async t=>({t,c:await tmdbCard(t).catch(()=>null)})));
     got.forEach(({t,c})=>{ if(!c) return; store[t.toLowerCase()]=c; if(!RECS.some(x=>x.t.toLowerCase()===c.t.toLowerCase())){RECS.push(c);KNOWN.add(c.t.toLowerCase());} });
     sortRecs(); renderRecs();
@@ -2442,7 +2444,14 @@ function historyBlock(){
 // ====== SHARED STATE (05-09-26): every device sees the same computed results ======
 // The Worker stores small JSON files in the repo (state/<key>.json). The first device to compute writes; the others
 // read and skip the work. Tolerates an older Worker without the route (GET 404/405 → nothing happens).
-let SOCIAL_DIRTY=false, DISC_DIRTY=false, REVIEW_DIRTY=false, PICKS_DIRTY=false, MOVIES_DIRTY=false;
+let SOCIAL_DIRTY=false, DISC_DIRTY=false, REVIEW_DIRTY=false, PICKS_DIRTY=false, MOVIES_DIRTY=false, MVT_DIRTY=false;
+// state/mvt.json: the title → film map (18-09-26). Without it a film added to a list on the phone resolves through search/tv
+// on the laptop and turns into a series of the same name. Fetched once per load, awaited before any by-title resolution.
+function mvtShared(){
+  if(!window.__workerReady) return Promise.resolve(false); // init call before WORKER_URL exists: skip, do not cache the miss
+  if(!window.__mvtReady) window.__mvtReady=sharedGet('mvt').then(mo=>{ const m=(mo&&mo.map)||{}; let n=0; Object.keys(m).forEach(k=>{ const v=m[k]; if(!v||!v.id) return; const l=MVT[k]; if(!l){ MVT[k]=v; n++; } else if(l.id!==v.id&&(v.at||0)>(l.at||0)){ MVT[k]=v; n++; refreshRecCard(k); } }); /* per title: the newer decision wins across devices */ if(n){ try{localStorage.setItem('krdb_mvt',JSON.stringify(MVT));}catch(e){} } if(Object.keys(MVT).some(k=>!m[k])) MVT_DIRTY=true; return true; }).catch(()=>false);
+  return window.__mvtReady;
+}
 // ====== ENGINE PICKS (05-09-26): shows with his favorite actors that clear the bar join For You automatically ======
 // This is the useful half of the old "Update For You" button, without the half that rewrote the curated numbers.
 // Picks are marked pick:'actor' + est:true, sorted in with the curated list, shared across devices, recomputed when
@@ -2512,6 +2521,7 @@ async function autoActorPicks(){
 async function sharedGet(key){ try{ const r=await fetch(WORKER_URL+'/state/'+key,{cache:'no-store'}); if(!r.ok) return null; return await r.json(); }catch(e){ return null; } }
 async function sharedPut(key,obj){ try{ const r=await fetch(WORKER_URL+'/state/'+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}); return r.ok; }catch(e){ return false; } }
 async function pullShared(){
+  try{ await mvtShared(); }catch(e){}
   const [sc,so,di,rv,fy,pk,mo]=await Promise.all([sharedGet('scores'),sharedGet('social'),sharedGet('disc'),sharedGet('review'),sharedGet('foryou'),sharedGet('picks'),sharedGet('movies')]);
   if(mo&&mo.v===3&&Array.isArray(mo.cards)&&mo.cards.length&&(mo.ts||0)>cacheTs(MOVIES_KEY)){ try{localStorage.setItem(MOVIES_KEY,JSON.stringify({ts:mo.ts,v:mo.cards}));}catch(e){} MOVIES=mo.cards; mvRemember(MOVIES); }
   if(pk&&Array.isArray(pk.added)&&pk.lh===learnedHash()&&pk.ver===AI_VER&&(pk.mts||0)===cacheTs(MOVIES_KEY)&&(pk.pe||'')===(PREF.era||'')+'|'+(PREF.fera||'')){ const loc=cacheGet('krdb_picks',0); if((pk.ts||0)>((loc&&loc.ts)||0)){ cacheSet('krdb_picks',pk); if(applyPicks(pk)) render(currentFilter); } }
@@ -2530,6 +2540,7 @@ async function pushShared(){
   if(DISC_DIRTY){ if(await sharedPut('disc',{v:2,ts:Date.now(),yrs:5,cards:DISC})) DISC_DIRTY=false; }
   if(REVIEW_DIRTY){ const rv=cacheGet('krdb_review',0); if(rv&&await sharedPut('review',rv)) REVIEW_DIRTY=false; }
   if(PICKS_DIRTY){ const pk=cacheGet('krdb_picks',0); if(pk&&await sharedPut('picks',pk)) PICKS_DIRTY=false; }
+  if(MVT_DIRTY){ if(await sharedPut('mvt',{ts:Date.now(),map:MVT})) MVT_DIRTY=false; }
   if(MOVIES_DIRTY&&MOVIES.length){ if(await sharedPut('movies',{v:3,ts:cacheTs(MOVIES_KEY)||Date.now(),cards:MOVIES})) MOVIES_DIRTY=false; }
 }
 // ====== ALWAYS CURRENT (05-09-26): one chain per page open, triggered by whatever changed ======
@@ -3024,10 +3035,14 @@ const MV_GENRE_HE={28:"אקשן",12:"הרפתקאות",16:"אנימציה",35:"�
 const MV2TV={28:10759,12:10759,14:10765,878:10765,10752:10768,53:9648}; // movie genre id -> the series id GENRE_TMDB already knows, so one avoid-list serves both
 function mvGenreIds(ids){ return [...new Set((ids||[]).map(i=>MV2TV[i]||i))]; }
 function cacheTs(key){ try{ const c=JSON.parse(localStorage.getItem(key)||'null'); return (c&&c.ts)||0; }catch(e){ return 0; } }
-function mvRemember(cards){
+// force = the user picked this film himself (search, card): it overrides an entry of the same title (two films can share
+// one title — the 2013 and 2026 "Hope"). The pool only fills titles that are still unknown.
+function mvRemember(cards,force){
   let n=0;
-  (cards||[]).forEach(c=>{ const k=(c.t||'').toLowerCase(); if(!k||TVBAKED.has(k)) return; if(!MVT[k]||MVT[k].id!==c.mid){ MVT[k]={id:c.mid,t:c.t,y:c.y,poster:c.poster}; n++; } });
-  if(n){ try{localStorage.setItem('krdb_mvt',JSON.stringify(MVT));}catch(e){} }
+  const changed=[];
+  (cards||[]).forEach(c=>{ const k=(c.t||'').toLowerCase(); if(!k||TVBAKED.has(k)) return; if(!MVT[k]||(force&&MVT[k].id!==c.mid)){ if(MVT[k]) changed.push(k); MVT[k]={id:c.mid,t:c.t,y:c.y,poster:c.poster,at:Date.now()}; n++; } });
+  changed.forEach(refreshRecCard); // a list card built for the other film of that title is rebuilt
+  if(n){ MVT_DIRTY=true; try{localStorage.setItem('krdb_mvt',JSON.stringify(MVT));}catch(e){} if(force&&window.__workerReady) sharedPut('mvt',{ts:Date.now(),map:MVT}).then(ok=>{ if(ok) MVT_DIRTY=false; }); }
 }
 function estMovie(va,ids){
   let m=40;
@@ -3070,7 +3085,7 @@ async function buildMovieById(mid,preset){
     const c=movieCard(d,preset,false), k=c.t.toLowerCase();
     // a film opened from search is outside the pool: remember it so Rate / Watched by title still resolve to it after a
     // reload — unless a series on the page has the same title
-    if(![shows,RECS,DISC].some(L=>L.some(x=>(x.t||'').toLowerCase()===k))) mvRemember([c]);
+    if(![shows,RECS,DISC].some(L=>L.some(x=>!x.mv&&(x.t||'').toLowerCase()===k))) mvRemember([c],true); // a SERIES of the same title on the page wins; a film of the same title does not block
     return c;
   }catch(e){ return null; }
 }
@@ -3105,6 +3120,13 @@ function movieOk(c){
 }
 // films released in the last 12 months join New and relevant (strip + full view); they keep their own recency/avoid rules
 function newFilms(){ return (typeof MOVIES==='undefined'?[]:MOVIES).filter(c=>isNewShow(c)&&movieOk(c)&&passes(c)); }
+// the Social suggestions card for a title whose film changed (same title, other film): drop the cached card and rebuild it
+function refreshRecCard(k){
+  const i=RECS.findIndex(c=>c.t.toLowerCase()===k); if(i>-1) RECS.splice(i,1);
+  const store=cacheGet('krdb_recs_cards',0)||{}; if(store[k]){ delete store[k]; cacheSet('krdb_recs_cards',store); }
+  const t=[...RECS_T].find(x=>x.toLowerCase()===k); if(!t) return;
+  tmdbCard(t).then(c=>{ if(!c||RECS.some(x=>x.t.toLowerCase()===k)) return; RECS.push(c); store[k]=c; cacheSet('krdb_recs_cards',store); renderRecs(); }).catch(()=>{});
+}
 function movieScore(c){ const a=AICACHE[c.id]; return (a&&a.parts)?finalScore(a,bonusesFor(c.cast||[]),0):null; }
 function renderMovies(){
   const el=document.getElementById('movieGrid'); if(!el) return;
